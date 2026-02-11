@@ -32,7 +32,7 @@ node ~/outreach-figma-bridge/setup.js
 This single command:
 - **Detects your editor(s)** (Cursor, VS Code, or both)
 - **Registers the MCP server globally** — one entry in your editor config, shared across all projects
-- **Copies design rules** into your project (`.cursor/rules/` for Cursor, `.github/copilot-instructions.md` for VS Code)
+- **Copies design rules** into your project (`.cursor/rules/` for Cursor, `.github/instructions/` for VS Code)
 - **Creates supporting directories** (`.cursor/specs/`, `.cursor/cache/`)
 
 ### 3. Restart your editor
@@ -123,7 +123,7 @@ The AI in your editor communicates with the MCP server via the Model Context Pro
 | `.cursor/rules/*.mdc` | AI behavior rules (Cursor) | `setup.js` |
 | `.cursor/specs/` | Spec validator + README | `setup.js` |
 | `.cursor/cache/` | Library data cache (gitignored) | `setup.js` |
-| `.github/copilot-instructions.md` | AI behavior rules (VS Code) | `setup.js` |
+| `.github/instructions/*.instructions.md` | AI behavior rules (VS Code) | `setup.js` |
 | `.bridge-version` | Version marker (gitignored) | `setup.js` |
 
 ---
@@ -171,7 +171,7 @@ The setup script couldn't find `~/.cursor/` or `~/.vscode/`. Make sure you've la
 
 Check that the rules were copied:
 - Cursor: `.cursor/rules/` should have 5 `.mdc` files
-- VS Code: `.github/copilot-instructions.md` should exist
+- VS Code: `.github/instructions/` should have 5 `.instructions.md` files
 
 Re-run `node ~/outreach-figma-bridge/setup.js` to refresh them.
 

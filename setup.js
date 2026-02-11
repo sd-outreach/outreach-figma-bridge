@@ -297,55 +297,58 @@ function copyProjectRules(projectDir, editors, version) {
     logStatus(".cursor/cache/", "current", "exists");
   }
 
-  // ── VS Code copilot instructions ──
+  // ── VS Code instruction files ──
   if (editorNames.includes("VS Code")) {
-    const copilotSrc = path.join(VSCODE_RULES_SRC, "copilot-instructions.md");
-    if (fs.existsSync(copilotSrc)) {
-      const copilotDest = path.join(projectDir, ".github", "copilot-instructions.md");
-      const bridgeContent = fs.readFileSync(copilotSrc, "utf-8");
-
-      if (fs.existsSync(copilotDest)) {
-        // Check if bridge section already exists
-        const existing = fs.readFileSync(copilotDest, "utf-8");
-        const startMarker = "<!-- BRIDGE_INSTRUCTIONS_START";
-        const endMarker = "<!-- BRIDGE_INSTRUCTIONS_END";
-
-        if (existing.includes(startMarker)) {
-          // Replace existing bridge section
-          const startIdx = existing.indexOf(startMarker);
-          const endIdx = existing.indexOf(endMarker);
-          if (endIdx !== -1) {
-            // Find the end of the end marker line
-            const endLineIdx = existing.indexOf("-->", endIdx) + 3;
-            const updated =
-              existing.substring(0, startIdx) +
-              extractBridgeSection(bridgeContent) +
-              existing.substring(endLineIdx);
-            fs.writeFileSync(copilotDest, updated);
-            logStatus(
-              ".github/copilot-instructions.md",
-              "updated",
-              "bridge section replaced"
-            );
-          }
-        } else {
-          // Append bridge section
-          const separator =
-            "\n\n---\n\n<!-- Outreach Figma MCP Bridge instructions appended by setup.js -->\n\n";
-          fs.writeFileSync(copilotDest, existing + separator + bridgeContent);
-          logStatus(
-            ".github/copilot-instructions.md",
-            "updated",
-            "bridge section appended"
-          );
-        }
-      } else {
-        // Create new file
-        ensureDir(path.join(projectDir, ".github"));
-        fs.writeFileSync(copilotDest, bridgeContent);
-        logStatus(".github/copilot-instructions.md", "installed", "VS Code");
+    if (fs.existsSync(VSCODE_RULES_SRC)) {
+      const instructionsDest = path.join(projectDir, ".github", "instructions");
+      const copied = copyDir(VSCODE_RULES_SRC, instructionsDest, (f) =>
+        f.endsWith(".instructions.md")
+      );
+      if (copied.length > 0) {
+        const detail = existingVersion
+          ? `v${existingVersion} → v${version}, ${copied.length} files`
+          : `v${version}, ${copied.length} files`;
+        logStatus(".github/instructions/  (VS Code)", "copied", detail);
+        copiedAnything = true;
       }
-      copiedAnything = true;
+
+      // Migration: clean up old consolidated copilot-instructions.md
+      const oldCopilotPath = path.join(projectDir, ".github", "copilot-instructions.md");
+      if (fs.existsSync(oldCopilotPath)) {
+        const oldContent = fs.readFileSync(oldCopilotPath, "utf-8");
+
+        if (oldContent.includes("BRIDGE_INSTRUCTIONS_START")) {
+          // Find the outermost bridge block (including surrounding HTML comment boilerplate)
+          // The generated file looks like:
+          //   <!-- ==... -->
+          //   <!-- Outreach Figma MCP Bridge ... -->
+          //   <!-- Version: ... -->
+          //   <!-- BRIDGE_INSTRUCTIONS_START ... -->
+          //   <!-- ==... -->
+          //   ... content ...
+          //   <!-- ==... -->
+          //   <!-- BRIDGE_INSTRUCTIONS_END ... -->
+          //   <!-- ==... -->
+
+          // Strip everything between the first "<!-- ====" bridge header and the last "<!-- ====" bridge footer
+          // Use a regex that matches the entire bridge block generously
+          let remaining = oldContent
+            .replace(/<!--\s*=+\s*-->[\s\S]*?BRIDGE_INSTRUCTIONS_END[\s\S]*?<!--\s*=+\s*-->/g, "")
+            // Also strip the separator comment if the bridge was appended to existing content
+            .replace(/\n*---\n*<!-- Outreach Figma MCP Bridge instructions appended by setup\.js -->\n*/g, "")
+            .trim();
+
+          if (remaining.length === 0) {
+            // File only had bridge content — delete it
+            fs.unlinkSync(oldCopilotPath);
+            logStatus(".github/copilot-instructions.md", "removed", "migrated to .github/instructions/");
+          } else {
+            // File had user content too — keep only that
+            fs.writeFileSync(oldCopilotPath, remaining + "\n");
+            logStatus(".github/copilot-instructions.md", "updated", "bridge section removed, user content kept");
+          }
+        }
+      }
     }
   }
 
@@ -356,17 +359,6 @@ function copyProjectRules(projectDir, editors, version) {
   updateGitignore(projectDir);
 
   return copiedAnything;
-}
-
-function extractBridgeSection(content) {
-  // Extract everything from BRIDGE_INSTRUCTIONS_START to BRIDGE_INSTRUCTIONS_END inclusive
-  const startMarker = "<!-- BRIDGE_INSTRUCTIONS_START";
-  const endMarker = "<!-- BRIDGE_INSTRUCTIONS_END";
-  const startIdx = content.indexOf(startMarker);
-  const endIdx = content.indexOf(endMarker);
-  if (startIdx === -1 || endIdx === -1) return content;
-  const endLineIdx = content.indexOf("-->", endIdx) + 3;
-  return content.substring(startIdx, endLineIdx);
 }
 
 function updateGitignore(projectDir) {

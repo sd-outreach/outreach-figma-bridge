@@ -1,6 +1,7 @@
 ---
-description: Design system configuration — which mode to use, how to source tokens and components
-alwaysApply: true
+name: 'Design System Config'
+description: 'Design system configuration — which mode to use, how to source tokens and components'
+applyTo: '**'
 ---
 
 # Design System Configuration
