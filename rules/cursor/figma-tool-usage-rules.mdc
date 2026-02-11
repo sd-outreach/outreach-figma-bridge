@@ -10,18 +10,27 @@ These rules govern **how to use the Figma MCP bridge tools**. They are design-sy
 
 > **MODE GATE: Before executing ANY design operation, read `design-system-config.mdc` to determine the active mode (`library`, `tokens`, `custom`, or `none`). The active mode is declared in `## Current Mode:` at the top of that file. Rules in this file that are marked with a mode condition (e.g. "only in `custom` mode") MUST be skipped if that mode is not active. When the active mode is `library` or `tokens`, you MUST NOT use token-file-based workflows (`setup_design_tokens`, hardcoded RGB values). When the active mode is `library`, you MUST use library component instances where they exist. See the MODE ENFORCEMENT section in `design-system-config.mdc` for the full list of prohibitions.**
 
-### RULE ZERO — Verify Setup (must run first)
+### RULE ZERO — Verify Setup and Connection (must run first)
 
-**Before your first design operation in any session**, call `verify_workspace_setup` with the absolute path to the workspace root. This checks that all required rule files and supporting directories are in place.
+**Before your first design operation in any session**, perform these two checks in order:
 
-- If the tool reports **SETUP INCOMPLETE**: **STOP.** Do not proceed with any design operations. Tell the user to run the setup script:
-  ```
-  cd <project-directory>
-  node ~/outreach-figma-bridge/setup.js
-  ```
-  Then restart their editor.
-- If the tool reports **SETUP VERIFIED**: Proceed normally with the rest of the rules.
-- You only need to call this **once per session**, not before every operation.
+1. **Call `verify_workspace_setup`** with the absolute path to the workspace root. This checks that all required rule files and supporting directories are in place.
+   - If the tool reports **SETUP INCOMPLETE**: **STOP.** Do not proceed with any design operations. Tell the user to run the setup script:
+     ```
+     cd <project-directory>
+     node ~/outreach-figma-bridge/setup.js
+     ```
+     Then restart their editor.
+   - If the tool reports **SETUP VERIFIED**: Continue to step 2.
+
+2. **Call `check_health`** to confirm the Figma connection pipeline is live.
+   - If it reports **CONNECTION HEALTHY**: Proceed normally with the rest of the rules.
+   - If it reports **CONNECTION PROBLEM**: **STOP.** Tell the user exactly what the tool says and do NOT attempt design operations until the issue is resolved. Common problems:
+     - **Port conflict** — another editor already has the MCP server running on the same port.
+     - **No Figma plugin** — the Figma plugin is not running or not connected.
+     - **Server not running** — the WebSocket server failed to start.
+
+- You only need to run these checks **once per session**, not before every operation.
 
 ### A. Atomic Building (highest-velocity path)
 
