@@ -17,7 +17,7 @@ AI-powered Figma design through Cursor and VS Code. Build complete designs by de
 ### 1. Clone this repo (one-time)
 
 ```bash
-git clone git@github.com:YourOrg/outreach-figma-bridge.git ~/outreach-figma-bridge
+git clone git@github.com:sd-outreach/outreach-figma-bridge.git ~/outreach-figma-bridge
 ```
 
 ### 2. Set up your project
@@ -39,11 +39,13 @@ This single command:
 
 Restart Cursor and/or VS Code so they pick up the new MCP server.
 
-### 4. Open Figma
+### 4. Install the Figma Plugin
 
 1. Open any Figma file in the **Desktop App**
 2. Go to **Plugins > Outreach Figma MCP Bridge** and run it
 3. Wait for the "Connected" indicator in the plugin UI
+
+> The plugin is published to the Outreach org. Search for "Outreach Figma MCP Bridge" in the Figma plugin browser, or ask your team lead for the install link.
 
 ### 5. Start designing
 
@@ -128,12 +130,13 @@ The AI in your editor communicates with the MCP server via the Model Context Pro
 
 ## Design System Modes
 
-The bridge supports three modes, configured in `.cursor/rules/design-system-config.mdc`:
+The bridge supports four modes, configured in `.cursor/rules/design-system-config.mdc`:
 
 | Mode | Description |
 |------|-------------|
 | **`library`** | Use components, variables, and styles from a published Figma library |
 | **`tokens`** | Build components from scratch but use library variables/styles for visual values |
+| **`custom`** | Build components from scratch using a design token file for all visual values |
 | **`none`** | Greenfield — no library, sensible defaults |
 
 The default mode after setup depends on your org's configuration.
