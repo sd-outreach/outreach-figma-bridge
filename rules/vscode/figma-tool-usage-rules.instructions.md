@@ -1,8 +1,14 @@
 ---
 name: 'Figma Tool Usage Rules'
-description: 'Rules for Figma MCP tool usage — velocity & quality (design-system agnostic)'
+description: '[MANAGED — DO NOT EDIT] Rules for Figma MCP tool usage — velocity & quality (design-system agnostic)'
 applyTo: '**'
 ---
+
+<!-- ============================================================
+     THIS FILE IS MANAGED BY THE OUTREACH FIGMA MCP BRIDGE.
+     DO NOT EDIT — your changes will be overwritten on next setup.
+     To customize design system behavior, edit design-system-config.mdc instead.
+     ============================================================ -->
 
 ## Figma Tool Usage Rules
 
@@ -141,7 +147,7 @@ The gate applies **only when you are about to call a Figma tool** — i.e., when
 ### J2. Library Components in Specs (Instance Type)
 
 41. **Use `type: "instance"` in specs to instantiate library or local components** directly within the atomic build process. This avoids rebuilding components from scratch when they already exist.
-42. **For published library components**, use `componentKey` — the key from the Figma library. Get component keys via `get_local_components` or from the design system's component key mapping (see `design-system-config.mdc`).
+42. **For published library components**, use `componentKey` — the key from the Figma library. Get component keys from the cache's `componentKeys` for the selected library (see Section R), or via `get_local_components` with `allPages: true` when scanning a library file.
 43. **For local components**, use `componentId` — the node ID of a component on the current page or document.
 44. **Apply overrides with `instanceOverrides`** — an array of `{childName, characters?, fillColor?, visible?}` objects. The builder searches for children by name within the instance and applies the overrides.
 45. **Instance nodes cannot have `children`** — use `instanceOverrides` instead. The component's structure comes from the source component.
@@ -149,7 +155,7 @@ The gate applies **only when you are about to call a Figma tool** — i.e., when
 
 ### K. Component Matching
 
-47. **When a user says a component name** (e.g. "button", "card", "input"), check `design-system-config.mdc` for the current mode. In `library` mode, match the user's term against the Component Name column in the component key mapping file — use your understanding of common synonyms (e.g. "modal" → Dialog, "toggle" → switch, "dropdown" → select). In `tokens` mode, build the component from scratch using library variables/styles (no component key mapping needed). In `custom` mode, use the token file's component specs. In `create` mode, discover existing components via `get_local_components` or create new ones per user instructions (see Section T). In `none` mode, use sensible defaults (e.g. a button is a rounded rectangle with text).
+47. **When a user says a component name** (e.g. "button", "card", "input"), check `design-system-config.mdc` for the current mode. In `library` mode, match the user's term against the component set names in the cache's `componentKeys` for the selected library — use your understanding of common synonyms (e.g. "modal" → Dialog, "toggle" → switch, "dropdown" → select). In `tokens` mode, build the component from scratch using library variables/styles (no component keys needed). In `custom` mode, use the token file's component specs. In `create` mode, discover existing components via `get_local_components` or create new ones per user instructions (see Section T). In `none` mode, use sensible defaults (e.g. a button is a rounded rectangle with text).
 
 ### L. Screen & Component Defaults
 
@@ -163,7 +169,7 @@ The gate applies **only when you are about to call a Figma tool** — i.e., when
 
 ### L3. Form Field Labels — No Duplication (`library` mode)
 
-> **Applies to `library` mode only.** In `library` mode, form field components from the Quark library already include their own label internally. Do NOT add a separate text node as a label above or beside these components — doing so duplicates the label and looks broken.
+> **Applies to `library` mode only.** In `library` mode, form field components from the library may already include their own label internally. Do NOT add a separate text node as a label above or beside these components if the component already has a built-in label — doing so duplicates the label and looks broken. Check the component's child structure or documentation to determine whether it includes a label.
 
 49d. **Do NOT add an explicit label text node for library form field instances.** The following library components have a built-in label and must NOT be wrapped with an external label:
 - **Text Field** (all variants — with label, without label, with helper text, etc.)
@@ -180,7 +186,7 @@ The gate applies **only when you are about to call a Figma tool** — i.e., when
 {
   "name": "Email Input",
   "type": "instance",
-  "componentKey": "05559a8adb0683693bfb8e1dffb090483a852ba8",
+  "componentKey": "<from cache componentKeys>",
   "instanceOverrides": [
     {"childName": "Label text", "characters": "Email address"}
   ]
@@ -246,75 +252,85 @@ The gate applies **only when you are about to call a Figma tool** — i.e., when
 
 ### R. Library Data Caching
 
-> **Applies to `library` and `tokens` modes only.** `custom`, `create`, and `none` modes do not use the library cache.
+> **Applies to `library` and `tokens` modes only.** `custom`, `create`, and `none` modes do not use the library cache. The cache is **library-agnostic** — it works with any Figma design system library, organized per-library.
 
-71. **Check the cache before calling Figma.** On the first design operation in a session, check if `.cursor/cache/library-data.json` exists. If it does, read it and use the cached data for all subsequent operations. Do NOT call `get_local_variables`, `get_node_styles`, or `get_available_fonts` from Figma when the cache is available.
-72. **Build the cache when it is missing.** If the cache file does not exist, fetch fresh data from Figma: (1) call `get_local_variables` with `includeLibrary: true`, (2) call `get_available_fonts`, (3) discover style keys via `get_node_styles` on key library component instances (then delete the temporary instances per rule 68). Write the combined results to `.cursor/cache/library-data.json`. Create the `.cursor/cache/` directory if it does not exist.
-73. **Cache file structure.** The JSON file must include: `lastFetched` (ISO timestamp), `variables` (raw output from `get_local_variables`), `variableLookup` (map of variable name to VariableID string for quick access), `styleKeys` (maps for `textStyles`, `paintStyles`, `effectStyles`), and `fonts` (array of available font family names).
-74. **Never refetch within a session.** Once the cache has been read or built, use it for the remainder of the session. Do not call `get_local_variables` or `get_node_styles` again unless the user explicitly requests a cache refresh.
-75. **Manual refresh.** When the user says "refresh cache", "update library cache", "rebuild cache", or similar, fetch fresh data from Figma and overwrite `.cursor/cache/library-data.json`. This is the only way to update the cache within a session.
-76. **Use `variableLookup` for fast variable resolution.** When building specs, look up variable IDs by name in the `variableLookup` map (e.g. `variableLookup["primary/main"]` returns `"VariableID:abc/123:456"`). This avoids scanning the full variables array.
-77. **Use `styleKeys` for fast style resolution.** When applying text styles, look up the key by style name in `styleKeys.textStyles` (e.g. `styleKeys.textStyles["Body 1"]` returns the style key). Same pattern for `paintStyles` and `effectStyles`.
+71. **Check the cache before calling Figma.** On the first design operation in a session, check if `.cursor/cache/library-data.json` exists and has `selectedLibraries`. If it does, read it and use the cached data for all subsequent operations. Do NOT call `discover_libraries`, `get_local_variables`, `get_node_styles`, or `get_available_fonts` from Figma when the cache is available.
+72. **Build the cache when it is missing.** If the cache file does not exist, run the full discovery and caching flow:
+    1. Call `discover_libraries` to list all design system libraries attached to the current Figma file.
+    2. If multiple libraries are found, present the full list to the user and let them select one or more. If only one, confirm and proceed.
+    3. Call `get_local_variables` with `includeLibrary: true` to import variables for the selected libraries. Group the returned `libraryCollections` by `libraryName` and build `variableLookup` maps per-library.
+    4. Call `get_available_fonts` to discover available fonts.
+    5. Write the combined results to `.cursor/cache/library-data.json` with the per-library structure. Create the `.cursor/cache/` directory if it does not exist.
+73. **Cache file structure.** The JSON file must include: `lastFetched` (ISO timestamp), `selectedLibraries` (array of library names the user selected), `libraries` (map of library name to per-library data with `variableLookup`, `styleKeys`, `componentKeys`), and `fonts` (array of available font family names). See `design-system-config.mdc` for the full structure.
+74. **Never refetch within a session.** Once the cache has been read or built, use it for the remainder of the session. Do not call `discover_libraries`, `get_local_variables`, or `get_node_styles` again unless the user explicitly requests a cache refresh.
+75. **Manual refresh.** When the user says "refresh cache", "update library cache", "rebuild cache", or similar, fetch fresh data from Figma and overwrite `.cursor/cache/library-data.json`. Re-run the full discovery flow (rule 72).
+76. **Use `variableLookup` for fast variable resolution.** When building specs, look up variable IDs by name in `libraries[selectedLibrary].variableLookup` (e.g. `libraries["My Design System"].variableLookup["primary/main"]` returns `"VariableID:abc/123:456"`). This avoids scanning the full variables array.
+77. **Use `styleKeys` for fast style resolution.** When applying text styles, look up the key by style name in `libraries[selectedLibrary].styleKeys.textStyles`. Same pattern for `paintStyles` and `effectStyles`.
+
+### R2. Component Key Caching
+
+> **Applies to `library` mode only.** Component keys are auto-populated by scanning the library file.
+
+78. **If the cache has no `componentKeys` for the selected library**, tell the user: "I need to scan components from the [Library Name] library. Please open the library file in Figma and let me know when it's ready."
+79. **Once the library file is open**, call `get_local_components` with `allPages: true` to scan all components in the document. Also call `get_local_styles` to discover all style keys (which now include the `key` property).
+80. **Organize component data by component set.** Group the returned components by `componentSetName`. For each component set, store the `componentSetKey` and a `variants` map (variant name string → component key). Also update `styleKeys` from the `get_local_styles` response.
+81. **Write component data to the cache** under `libraries[libraryName].componentKeys` and set `componentsScannedAt` to the current timestamp.
+82. **This is a one-time operation.** Once component keys are cached, they persist across sessions. Only re-scan if the user requests a cache refresh or the library is updated.
+83. **Use `componentKeys` for fast component lookup.** When building specs, look up the component set by name in `libraries[selectedLibrary].componentKeys`, then find the variant key matching the desired property combination.
 
 ### S. Semantic Token Usage
 
-> **Applies to `library` and `tokens` modes.** Always select the most semantically specific variable for the UI context. Never use a generic/primitive token when a purpose-built semantic token exists.
+> **Applies to `library` and `tokens` modes.** Always select the most semantically specific variable for the UI context. Never use a generic/primitive token when a purpose-built semantic token exists. The variable names below are examples — actual names depend on the specific library in use.
 
-78. **Match tokens to UI purpose, not visual appearance.** Even if two tokens resolve to the same color in light mode, they may diverge in dark mode or future themes. Using the semantically correct token ensures designs remain theme-aware.
+84. **Match tokens to UI purpose, not visual appearance.** Even if two tokens resolve to the same color in light mode, they may diverge in dark mode or future themes. Using the semantically correct token ensures designs remain theme-aware.
 
-79. **Semantic token mapping — use the right variable for each UI element:**
+85. **Semantic token mapping guidelines — use the right variable for each UI element.** Look for variables in the library cache that match these semantic purposes:
 
-| UI Element | Correct Variable | Wrong Variable |
+| UI Element | Look for variables containing | Avoid |
 |---|---|---|
-| Page/screen background | `Background/background-default` | — |
-| Card, dialog, elevated surface | `Background/background-paper` | `Common/common-white` |
-| Alternate surface (sidebar, panel) | `Background/background-paperAlt` | `Background/background-paper` |
-| Input field background | `Background/background-input` | `Background/background-paper` |
-| Layer/overlay background | `Background/background-layer` | — |
-| Headings, labels, primary body text | `Text/text-primary` | `Common/common-black` |
-| Secondary descriptions, captions | `Text/text-secondary` | `Text/text-primary` |
-| Tertiary/very muted text | `Text/text-tertiary` | `Text/text-secondary` |
-| Placeholder/hint text in inputs | `Text/text-hint` | `Text/text-secondary` |
-| Clickable text links | `Text/text-link` | `Primary/primary-main` |
-| Active/focused text | `Text/text-active` | `Primary/primary-main` |
-| Disabled text | `Text/text-disabled` | `Text/text-hint` |
-| Input/form field border (resting) | `Border/border-default` | `Other/other-divider` |
-| Input border (focused/active) | `Border/border-active` | `Primary/primary-main` |
-| Input border (hover) | `Border/border-hover` | `Border/border-default` |
-| Subtle/decorative border | `Border/border-light` | `Border/border-default` |
-| Primary filled button background | `Primary/primary-main` | — |
-| Text on primary-colored surface | `Primary/primary-contrastText` | `Common/common-white` |
-| Divider/separator lines | `Other/other-divider` | `Border/border-default` |
+| Page/screen background | `background-default`, `bg-default` | — |
+| Card, dialog, elevated surface | `background-paper`, `bg-surface` | generic white variables |
+| Alternate surface (sidebar, panel) | `background-paperAlt`, `bg-alt` | primary background |
+| Input field background | `background-input`, `bg-input` | surface/paper variables |
+| Headings, labels, primary body text | `text-primary`, `text-default` | generic black variables |
+| Secondary descriptions, captions | `text-secondary` | `text-primary` |
+| Placeholder/hint text in inputs | `text-hint`, `text-placeholder` | `text-secondary` |
+| Clickable text links | `text-link`, `link` | primary color variables |
+| Disabled text | `text-disabled` | hint/placeholder variables |
+| Input/form field border (resting) | `border-default` | divider variables |
+| Input border (focused/active) | `border-active`, `border-focus` | primary color variables |
+| Primary filled button background | `primary-main`, `primary` | — |
+| Text on primary-colored surface | `primary-contrastText`, `on-primary` | generic white variables |
+| Divider/separator lines | `divider`, `separator` | border variables |
 
-80. **Key anti-patterns — NEVER do these:**
-- Do NOT use `Primary/primary-main` for text link colors — use `Text/text-link`.
-- Do NOT use `Text/text-secondary` for placeholder text in inputs — use `Text/text-hint`.
-- Do NOT use `Background/background-paper` for input field fills — use `Background/background-input`.
-- Do NOT use `Primary/primary-contrastText` for general white text not on a primary surface — use `Common/common-white`.
-- Do NOT use `Primary/primary-main` for any text fill — it is reserved for interactive surface fills (buttons, toggles, selection indicators). Text on those surfaces uses `Primary/primary-contrastText`.
-- Do NOT use `Border/border-default` for divider lines between sections — use `Other/other-divider`.
-- Do NOT use `Action/*` tokens for static elements — `Action/` tokens are for interactive state feedback (hover, active, disabled states on clickable elements).
+86. **Key anti-patterns — NEVER do these:**
+- Do NOT use primary color variables for text link colors — use a dedicated text-link variable.
+- Do NOT use secondary text variables for placeholder text — use a dedicated hint/placeholder variable.
+- Do NOT use surface/paper variables for input field fills — use a dedicated input background variable.
+- Do NOT use primary color variables for any text fill — they are for interactive surface fills. Text on those surfaces uses a contrast-text variable.
+- Do NOT use border variables for divider lines between sections — use a dedicated divider variable.
+- Do NOT use action/state tokens for static elements — action tokens are for interactive state feedback.
 
-81. **When in doubt, prefer specificity.** If a semantic token exists that exactly describes the element's purpose (e.g. `Background/background-input` for a text field), always use it over a broader token (e.g. `Background/background-paper`), even if both resolve to the same color today.
+87. **When in doubt, prefer specificity.** If a semantic token exists that exactly describes the element's purpose, always use it over a broader token, even if both resolve to the same color today.
 
 ### T. Design System Authoring (`create` mode)
 
 > **Applies to `create` mode only.** In this mode, the connected Figma file IS the library. You are authoring the design system, not consuming it. There is no cache, no component key mapping, and no token file — all data is live from/to Figma.
 
-82. **Discover before modifying.** Before creating or updating any DS element, call the appropriate read tool to understand what already exists:
+88. **Discover before modifying.** Before creating or updating any DS element, call the appropriate read tool to understand what already exists:
     - `get_local_variables` for variables and collections
     - `get_local_styles` for paint, text, and effect styles
     - `get_local_components` for components and component sets
     Avoid creating duplicates. If something already exists, update it rather than creating a new one.
 
-83. **Variable CRUD is fully available.** Use `create_variable_collection`, `create_variable`, `batch_create_variables`, `update_variable`, `rename_variable`, `delete_variable`, `delete_variable_collection`, `add_mode`, `rename_mode`, and `setup_design_tokens` as needed. No restrictions.
+89. **Variable CRUD is fully available.** Use `create_variable_collection`, `create_variable`, `batch_create_variables`, `update_variable`, `rename_variable`, `delete_variable`, `delete_variable_collection`, `add_mode`, `rename_mode`, and `setup_design_tokens` as needed. No restrictions.
 
-84. **Style CRUD is fully available.** Use `create_paint_style`, `create_text_style`, `create_effect_style` to create styles. Use `update_paint_style`, `update_text_style`, `update_effect_style` to modify existing styles. Use `rename_style` and `delete_style` for renaming and removal. Use `apply_style` to apply a style to a node.
+90. **Style CRUD is fully available.** Use `create_paint_style`, `create_text_style`, `create_effect_style` to create styles. Use `update_paint_style`, `update_text_style`, `update_effect_style` to modify existing styles. Use `rename_style` and `delete_style` for renaming and removal. Use `apply_style` to apply a style to a node.
 
-85. **Build components with `type: "component"` in specs.** You are authoring the source components, not instantiating them. Never use `type: "instance"` or `componentKey` in `create` mode — those are for consuming a published library.
+91. **Build components with `type: "component"` in specs.** You are authoring the source components, not instantiating them. Never use `type: "instance"` or `componentKey` in `create` mode — those are for consuming a published library.
 
-86. **Use `arrange_component_set`** to combine multiple component nodes into a proper Figma variant set. Components must follow the naming convention `Property=Value, Property2=Value2`.
+92. **Use `arrange_component_set`** to combine multiple component nodes into a proper Figma variant set. Components must follow the naming convention `Property=Value, Property2=Value2`.
 
-87. **No cache, no config files.** Do NOT read `.cursor/cache/library-data.json`, `quark-2-components.mdc`, `quark-2-tokens.mdc`, or any component mapping/token file. All data comes from live Figma MCP calls.
+93. **No cache, no config files.** Do NOT read `.cursor/cache/library-data.json` or any component mapping/token file. All data comes from live Figma MCP calls.
 
-88. **Follow the user's instructions for structure and naming.** The user decides naming conventions, organizational hierarchy, and values. Do not impose defaults or opinionated conventions unless explicitly asked.
+94. **Follow the user's instructions for structure and naming.** The user decides naming conventions, organizational hierarchy, and values. Do not impose defaults or opinionated conventions unless explicitly asked.

@@ -1,0 +1,10 @@
+{
+  "managedFiles": {
+    "figma-tool-usage-rules.mdc": {
+      "sha256": "dfc1b7c788c3183ebd5021f52764d0dbb23e7ee81fbef8684cf04b6f2313bc5c"
+    },
+    "interactive-specs.mdc": {
+      "sha256": "22931eb6a1535e52309d221f2f9ceb0f604a4c9cc6aa8bc8d88c720572afc6ce"
+    }
+  }
+}

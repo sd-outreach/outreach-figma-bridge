@@ -1,8 +1,14 @@
 ---
 name: 'Interactive Specs'
-description: 'Interactive spec workflow — save, validate, build, and sync spec files for transparency'
+description: '[MANAGED — DO NOT EDIT] Interactive spec workflow — save, validate, build, and sync spec files for transparency'
 applyTo: '**'
 ---
+
+<!-- ============================================================
+     THIS FILE IS MANAGED BY THE OUTREACH FIGMA MCP BRIDGE.
+     DO NOT EDIT — your changes will be overwritten on next setup.
+     To customize design system behavior, edit design-system-config.mdc instead.
+     ============================================================ -->
 
 ## Interactive Spec Workflow
 

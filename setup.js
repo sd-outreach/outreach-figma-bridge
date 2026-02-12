@@ -276,12 +276,38 @@ function copyProjectRules(projectDir, editors, version) {
   let copiedAnything = false;
 
   // ── Cursor rules ──
+  // Managed files that should be read-only for users (integrity-checked)
+  const MANAGED_RULES = ["figma-tool-usage-rules.mdc", "interactive-specs.mdc"];
+
   if (editorNames.includes("Cursor")) {
     const cursorRulesDest = path.join(projectDir, ".cursor", "rules");
     if (fs.existsSync(CURSOR_RULES_SRC)) {
+      // Copy .mdc rule files
       const copied = copyDir(CURSOR_RULES_SRC, cursorRulesDest, (f) =>
         f.endsWith(".mdc")
       );
+
+      // Copy .integrity.json if it exists
+      const integritySrc = path.join(CURSOR_RULES_SRC, ".integrity.json");
+      if (fs.existsSync(integritySrc)) {
+        fs.copyFileSync(
+          integritySrc,
+          path.join(cursorRulesDest, ".integrity.json")
+        );
+      }
+
+      // Set managed files to read-only (chmod 444)
+      for (const file of MANAGED_RULES) {
+        const filePath = path.join(cursorRulesDest, file);
+        if (fs.existsSync(filePath)) {
+          try {
+            fs.chmodSync(filePath, 0o444);
+          } catch {
+            // Ignore chmod errors on platforms that don't support it
+          }
+        }
+      }
+
       if (copied.length > 0) {
         const detail = existingVersion
           ? `v${existingVersion} → v${version}, ${copied.length} files`

@@ -8,6 +8,8 @@ applyTo: '**'
 
 This file controls **how the AI sources design decisions** when generating Figma designs. The tool usage rules in `figma-tool-usage-rules.mdc` are mode-agnostic — they describe *how* to use the tools. This file describes *what* to build with.
 
+> **This system is library-agnostic.** It works with any Figma design system library, not a specific one. Libraries are auto-discovered from the connected Figma file and the user selects which to use.
+
 ---
 
 ## Current Mode: `library`
@@ -18,21 +20,21 @@ Set to one of: `library`, `tokens`, `custom`, `create`, `none`
 
 ## MODE ENFORCEMENT — READ THIS FIRST
 
-> **AUDIT EXCEPTION: The `design_system_audit` prompt is COMPLETELY EXEMPT from mode enforcement, library cache, component key mappings, and all design-system-specific rules in this file. When running a design system audit, do NOT read this file for mode decisions, do NOT read `.cursor/cache/library-data.json`, do NOT reference `quark-2-components.mdc` or any component mapping, and do NOT reference any token file. The audit fetches ALL data directly from the connected Figma file via live MCP calls and analyzes it objectively. Skip the rest of this file entirely during an audit.**
+> **AUDIT EXCEPTION: The `design_system_audit` prompt is COMPLETELY EXEMPT from mode enforcement, library cache, and all design-system-specific rules in this file. When running a design system audit, do NOT read this file for mode decisions, do NOT read `.cursor/cache/library-data.json`, and do NOT reference any token file. The audit fetches ALL data directly from the connected Figma file via live MCP calls and analyzes it objectively. Skip the rest of this file entirely during an audit.**
 
 **If the active mode is `library`. This is the ONLY section that matters for design decisions.**
 
 > **How to read this section:** The enforcement block below is dynamically tied to the `Current Mode` value above. When you change the mode, mentally replace the enforcement rules with the ones defined in that mode's section. The rules below reflect `library` mode because that is the current setting.
 
 **MANDATORY in `library` mode:**
-- Every component MUST use `type: "instance"` + `componentKey` from the component key mapping file **when that component exists in the library**.
+- Every component MUST use `type: "instance"` + `componentKey` from the cache's `componentKeys` for the selected library **when that component exists in the library**.
 - If a component does NOT exist in the library, build it from scratch using `type: "frame"` or `type: "component"` — but still use library variables and styles for all visual properties (colors, typography, effects).
 - Every color MUST come from a library variable binding (`fillVariable`/`strokeVariable`/`textFillVariable`).
 - Every text style MUST come from a library text style (`textStyleKey`).
 - Every effect MUST come from a library effect style (`effectStyleKey`).
 
 **STRICTLY FORBIDDEN in `library` mode — violations are errors:**
-- Do NOT read, reference, or load `quark-2-tokens.mdc` or any token file.
+- Do NOT read, reference, or load any token file.
 - Do NOT call `setup_design_tokens` — tokens are irrelevant in library mode.
 - Do NOT build components from scratch using `type: "frame"` or `type: "component"` when a library component exists for that purpose.
 - Do NOT hardcode RGB color values (e.g. `{r: 0.5, g: 0.5, b: 0.5}`) — always bind to library variables.
@@ -44,29 +46,34 @@ Set to one of: `library`, `tokens`, `custom`, `create`, `none`
 
 ---
 
-## Library & Cache Configuration
+## Library Discovery & Selection
 
-These settings apply to both `library` and `tokens` modes, since both source visual values from the Figma library.
+Libraries are **auto-discovered** from the connected Figma file. No library URLs or names are hardcoded in this configuration.
 
-### Library File
+### Discovery Flow
 
-| Setting | Value |
-|---------|-------|
-| **Figma library file** | [Components (Quark 2.20)](https://www.figma.com/design/Q9ME8GTTEgj6sVDeh7CUTV) |
+1. **At the start of a session** (first design operation), call `discover_libraries` to list all design system libraries attached to the current Figma file.
+2. **If the cache already exists** (`.cursor/cache/library-data.json` with `selectedLibraries`), use it — do NOT re-discover unless the user requests a refresh.
+3. **If multiple libraries are found**, present the full list to the user and let them select one or more. Ask clearly: "I found these libraries attached to your file: [list]. Which would you like to use?"
+4. **If only one library is found**, confirm with the user and proceed.
+5. **If no libraries are found**, inform the user and suggest switching to `custom`, `create`, or `none` mode.
+6. **Store the selection** in `selectedLibraries` in the cache file.
 
-### Component Key Mapping
+### Component Key Discovery
 
-Component keys are maintained in a separate rule file for modularity. The AI must load and follow it when in `library` mode (and may reference it in `tokens` mode for structural guidance).
+Component keys are **auto-populated** into the cache when the user opens the library file in Figma.
 
-| Setting | Value |
-|---------|-------|
-| **Component mapping file** | `quark-2-components.mdc` (cursor rule in `.cursor/rules/`) |
+1. **If the cache has no `componentKeys` for the selected library**, tell the user: "I need to scan components from the [Library Name] library. Please open the library file in Figma and let me know when it's ready."
+2. Once the library file is open, call `get_local_components` with `allPages: true` to scan all components.
+3. Also call `get_local_styles` to discover all style keys (paint, text, effect).
+4. Organize the results and write them to the cache under the library's entry.
+5. This is a **one-time operation** — the results persist in the cache for all future sessions.
 
-> To use a different library: create a new component mapping `.mdc` file following the same structure, extract keys from your library using `get_local_components`, and update the mapping file reference above.
+---
 
-### Library Data Cache
+## Library Data Cache
 
-To avoid repeated expensive Figma API calls (`get_local_variables`, `get_node_styles`, `get_available_fonts`), the AI maintains a cache file on disk.
+To avoid repeated expensive Figma API calls, the AI maintains a per-library cache file on disk.
 
 | Setting | Value |
 |---------|-------|
@@ -75,29 +82,38 @@ To avoid repeated expensive Figma API calls (`get_local_variables`, `get_node_st
 
 **Caching rules (do NOT apply during `design_system_audit` — the audit always fetches fresh data from Figma):**
 1. **Before the first design operation** in a session, check if `.cursor/cache/library-data.json` exists.
-2. **If cache exists**: Read it and use the cached variables, styles, and fonts. Do NOT call `get_local_variables`, `get_node_styles`, or `get_available_fonts` from Figma.
-3. **If cache does not exist**: Fetch fresh data from Figma (`get_local_variables`, `get_available_fonts`, and style discovery via `get_node_styles`), then write the results to `.cursor/cache/library-data.json`.
+2. **If cache exists**: Read it and use the cached data for the `selectedLibraries`. Do NOT call `discover_libraries`, `get_local_variables`, `get_node_styles`, or `get_available_fonts` from Figma.
+3. **If cache does not exist**: Run the full discovery and caching flow (see Library Discovery & Selection above and Section R of `figma-tool-usage-rules.mdc`).
 4. **Within a session**: Never refetch. Use cached data or data already in context.
 5. **Manual refresh**: When the user says "refresh cache", "update library cache", or similar, fetch fresh data from Figma and overwrite the cache file.
 6. **Applies to `library` and `tokens` modes only.** `custom`, `create`, and `none` modes do not use or update the cache.
 
-**Cache file structure:**
+**Cache file structure (per-library):**
 ```json
 {
-  "lastFetched": "2026-02-11T10:30:00Z",
-  "variables": {
-    "collections": [],
-    "variables": [],
-    "libraryVariables": []
-  },
-  "variableLookup": {
-    "primary/main": "VariableID:abc/123:456",
-    "text/primary": "VariableID:abc/123:789"
-  },
-  "styleKeys": {
-    "textStyles": { "Body 1": "styleKeyHere", "H6": "styleKeyHere" },
-    "paintStyles": {},
-    "effectStyles": {}
+  "lastFetched": "2026-02-12T10:30:00Z",
+  "selectedLibraries": ["My Design System"],
+  "libraries": {
+    "My Design System": {
+      "variableLookup": {
+        "primary/main": "VariableID:abc/123:456",
+        "text/primary": "VariableID:abc/123:789"
+      },
+      "styleKeys": {
+        "textStyles": { "Body 1": "styleKeyHere", "H6": "styleKeyHere" },
+        "paintStyles": {},
+        "effectStyles": {}
+      },
+      "componentKeys": {
+        "Button": {
+          "componentSetKey": "abc123...",
+          "variants": {
+            "Style=Primary, Size=Small, State=Default": "componentKey..."
+          }
+        }
+      },
+      "componentsScannedAt": "2026-02-12T10:30:00Z"
+    }
   },
   "fonts": ["Inter", "Roboto"]
 }
@@ -111,9 +127,9 @@ To avoid repeated expensive Figma API calls (`get_local_variables`, `get_node_st
 
 The library is the source of truth for components, variables, and styles. The AI should:
 
-1. **Use `type: "instance"` + `componentKey`** for every component (buttons, inputs, cards, etc.) that exists in the library. Never rebuild a component from scratch if it exists in the library.
+1. **Use `type: "instance"` + `componentKey`** for every component (buttons, inputs, cards, etc.) that exists in the library. Never rebuild a component from scratch if it exists in the library. Get component keys from the cache's `componentKeys` for the selected library.
 2. **If a component does not exist in the library**, build it from scratch using `type: "frame"` or `type: "component"` — but still bind all colors to library variables (`fillVariable`/`strokeVariable`/`textFillVariable`), all text to library text styles (`textStyleKey`), and all effects to library effect styles (`effectStyleKey`). Do not hardcode visual values.
-3. **Read variables and styles from cache** (see Library Data Cache section above). Only call `get_local_variables` or `get_node_styles` if the cache is missing or being refreshed.
+3. **Read variables, styles, and component keys from cache** (see Library Data Cache section above). Only call Figma tools if the cache is missing or being refreshed.
 4. **Do not create new variables, styles, or components.** Only use what the library provides.
 5. **Layout grids**: Read from the library's frame templates if available, or ask the user.
 6. **Zero hardcoded values.** Every color must come from a library variable binding. Every text style must come from a library text style. Every shadow/effect must come from a library effect style. If the library doesn't provide a specific value, ask the user.
@@ -127,11 +143,11 @@ The library is the source of truth for components, variables, and styles. The AI
 This mode is for when you want custom component structures but consistent visual identity from the library. The AI builds every component using `type: "frame"` or `type: "component"` — never `type: "instance"` — but sources all colors, typography, and effects from the library.
 
 1. **Build components from scratch** using `type: "frame"` or `type: "component"`. Do NOT use `type: "instance"` or `componentKey`.
-2. **Read variables and styles from cache** (see Library Data Cache section above). Only call `get_local_variables` or `get_node_styles` if the cache is missing or being refreshed.
+2. **Read variables and styles from cache** (see Library Data Cache section above). Only call Figma tools if the cache is missing or being refreshed.
 3. **Bind all colors to library variables** using `fillVariable`/`strokeVariable`/`textFillVariable`. Do NOT hardcode RGB values.
 4. **Apply library text styles** using `textStyleKey`. Do NOT manually set `fontFamily`/`fontSize`/`fontStyle` when a library text style exists.
 5. **Apply library effect styles** using `effectStyleKey`. Do NOT manually define shadows or effects when a library effect style exists.
-6. **Do NOT read, reference, or load `quark-2-tokens.mdc`** — this mode uses the library for values, not a token file.
+6. **Do NOT read, reference, or load any token file** — this mode uses the library for values, not a token file.
 7. **Do NOT call `setup_design_tokens`** — variables already exist in the library.
 8. **Do NOT create new variables or styles** — only use what the library provides.
 9. **Layout grids**: Read from the library's frame templates if available, or ask the user.
@@ -146,25 +162,24 @@ This mode is for when you want custom component structures but consistent visual
 
 ## Mode: `custom`
 
-**Build all components from scratch. Use `quark-2-tokens.mdc` for all visual values.**
+**Build all components from scratch. Use a token file for all visual values.**
 
 This mode is for fully custom builds where you define everything from a token file. The AI builds every component using `type: "frame"` or `type: "component"` and reads exact color, typography, spacing, and elevation values from the token file.
 
 1. **Read the token file** listed below for all design decisions. Never guess — if a value isn't in the token file, ask.
-2. **Build components from scratch** using the component specs in the token file (Section 6 in Quark's case).
+2. **Build components from scratch** using the component specs in the token file.
 3. **Variable binding is recommended.** Use `setup_design_tokens` to create Figma variable collections from the tokens, then bind via `fillVariable`/`strokeVariable`/`textFillVariable`.
 4. **Apply layout grids** to root screen frames using the grid spec from the token file.
-5. **Map phrases to component specs** using the token file's quick-reference table (Section 8 in Quark's case).
-6. **Do NOT use the library cache** — this mode does not read from the Figma library.
-7. **Do NOT use `type: "instance"` or `componentKey`** — all components are built from scratch.
+5. **Do NOT use the library cache** — this mode does not read from the Figma library.
+6. **Do NOT use `type: "instance"` or `componentKey`** — all components are built from scratch.
 
 ### Token Configuration
 
 | Setting | Value |
 |---------|-------|
-| **Token file** | `quark-2-tokens.mdc` (cursor rule in `.cursor/rules/`) |
+| **Token file** | *(Set the token file name here when using custom mode, e.g. `my-tokens.mdc`)* |
 
-> To use a different token set: create a new `.mdc` file following the same structure as `quark-2-tokens.mdc` (colors, typography, spacing, shapes, elevation, component specs) and update the token file name above.
+> To use custom mode: create a `.mdc` file with your token definitions (colors, typography, spacing, shapes, elevation, component specs), place it in `.cursor/rules/`, and set the token file name in the table above.
 
 ---
 
@@ -177,8 +192,7 @@ This mode is for building and maintaining a design system. The user opens the Fi
 **What this mode means:**
 - **The connected file is the library itself.** You are authoring the source of truth, not consuming it.
 - **No cache.** Do NOT read `.cursor/cache/library-data.json`. All data comes from live Figma MCP calls (`get_local_variables`, `get_local_styles`, `get_local_components`).
-- **No component key mapping.** Do NOT read `quark-2-components.mdc` or any component mapping file. Discover components directly from the file via `get_local_components`.
-- **No token file.** Do NOT read `quark-2-tokens.mdc` or any token file.
+- **No component key mapping or token file.** Discover components directly from the file via `get_local_components`.
 - **Full CRUD on variables.** Create, read, update, rename, and delete variables and variable collections using `create_variable_collection`, `create_variable`, `batch_create_variables`, `update_variable`, `rename_variable`, `delete_variable`, `delete_variable_collection`, `setup_design_tokens`, etc.
 - **Full CRUD on styles.** Create, read, update, rename, and delete paint styles, text styles, and effect styles using `create_paint_style`, `create_text_style`, `create_effect_style`, `update_paint_style`, `update_text_style`, `update_effect_style`, `rename_style`, `delete_style`, `apply_style`, `get_local_styles`.
 - **Component authoring.** Build components with `type: "component"` in specs — never `type: "instance"` (you are authoring the source, not consuming it). Use `arrange_component_set` to create variant sets from components. Use `rename_node` and `remove_node` to manage components.
@@ -194,7 +208,7 @@ This mode is for building and maintaining a design system. The user opens the Fi
 This mode disables all design-system rules. Use it when running audits, invoking Figma MCP prompts, or executing any Figma tool operations where design-system constraints should not apply.
 
 **What this mode means:**
-- **No MODE ENFORCEMENT.** None of the `library`/`tokens`/`custom`/`create` mode rules above apply. Do NOT read the library cache, component key mappings, or token files.
+- **No MODE ENFORCEMENT.** None of the `library`/`tokens`/`custom`/`create` mode rules above apply. Do NOT read the library cache or token files.
 - **No defaults or assumptions.** Do not impose any default colors, typography, spacing, or component conventions unless the user explicitly specifies them.
 - **Follow the user's instructions exactly.** Execute what the user asks without adding guardrails, design-system checks, or opinionated defaults.
 - **Figma tools and prompts are unconstrained.** All Figma MCP tools and prompts (including `design_system_audit`, `audit_design`, etc.) operate directly against the connected Figma file without filtering through design-system rules. The only pre-requisite is RULE ZERO (Connection Gate) — verify the Figma connection is active before making MCP calls.
@@ -205,7 +219,7 @@ This mode disables all design-system rules. Use it when running audits, invoking
 
 **To switch modes**: Change `Current Mode` at the top of this file to one of: `library`, `tokens`, `custom`, `create`, `none`.
 
-**To switch the library** (for `library` and `tokens` modes): Update the library file link in the Library Configuration section and repopulate the component key mapping table. Delete the cache file (`.cursor/cache/library-data.json`) so it is rebuilt from the new library.
+**To switch or add libraries** (for `library` and `tokens` modes): Delete the cache file (`.cursor/cache/library-data.json`) so it is rebuilt with the new library selection on next use. Or say "refresh cache" to re-discover and re-select libraries.
 
 **To switch the token file** (for `custom` mode): Update the token file name in the Token Configuration table. Create the file if it doesn't exist.
 
