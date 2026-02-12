@@ -126,7 +126,7 @@ The AI in your editor communicates with the MCP server via the Model Context Pro
 | Location | What | Created by |
 |----------|------|------------|
 | `~/.cursor/mcp.json` | MCP server registration for Cursor | `setup.js` |
-| `~/.vscode/mcp.json` | MCP server registration for VS Code | `setup.js` |
+| `~/Library/Application Support/Code/User/mcp.json` (macOS) | MCP server registration for VS Code | `setup.js` |
 
 ### Per-project
 

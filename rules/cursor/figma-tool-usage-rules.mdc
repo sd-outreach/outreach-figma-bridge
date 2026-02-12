@@ -16,7 +16,7 @@ These rules govern **how to use the Figma MCP bridge tools**. They are design-sy
 
 > **MODE GATE: Before executing ANY design operation, read `design-system-config.mdc` to determine the active mode (`library`, `tokens`, `custom`, `create`, or `none`). The active mode is declared in `## Current Mode:` at the top of that file. Rules in this file that are marked with a mode condition (e.g. "only in `custom` mode") MUST be skipped if that mode is not active. When the active mode is `library` or `tokens`, you MUST NOT use token-file-based workflows (`setup_design_tokens`, hardcoded RGB values). When the active mode is `library`, you MUST use library component instances where they exist. When the active mode is `create`, you are authoring the DS itself — see Section T below for the authoring workflow. See the MODE ENFORCEMENT section in `design-system-config.mdc` for the full list of prohibitions.**
 >
-> **AUDIT EXCEPTION: The `design_system_audit` prompt is EXEMPT from the MODE GATE. When running a design system audit, do NOT read `design-system-config.mdc`, do NOT check the library data cache, do NOT reference any component key mapping or token file, and do NOT follow any mode-specific rules from this file. The audit fetches ALL data directly from the connected Figma file via live MCP calls. The only rule from this file that still applies during an audit is RULE ZERO (Connection Gate) — the Figma connection must be verified before making MCP calls.**
+> **AUDIT EXCEPTION: The `design_system_audit` prompt is EXEMPT from the MODE GATE. When running a design system audit, do NOT read `design-system-config.mdc`, do NOT check library packages or resolved variables, do NOT reference any component key mapping or token file, and do NOT follow any mode-specific rules from this file. The audit fetches ALL data directly from the connected Figma file via live MCP calls. The only rule from this file that still applies during an audit is RULE ZERO (Connection Gate) — the Figma connection must be verified before making MCP calls.**
 
 ### RULE ZERO — Connection Gate (MANDATORY before any Figma tool call)
 
@@ -84,7 +84,7 @@ The gate applies **only when you are about to call a Figma tool** — i.e., when
 
 ### C. Typography
 
-8. **Check `get_available_fonts` once at the start of a session**, not before every text node. In `library` or `tokens` mode, check the library data cache first (see Section R). In `create` mode, call `get_available_fonts` live — do not use the cache. Use the fonts specified by the active design system, or fall back to "Inter" if no DS is active.
+8. **Check `get_available_fonts` once at the start of a session**, not before every text node. In `library` or `tokens` mode, check the library package's `fonts` list first (see Section R). In `create` mode, call `get_available_fonts` live — do not use the package. Use the fonts specified by the active design system, or fall back to "Inter" if no DS is active.
 9. **Always specify `fontFamily`, `fontStyle`, and `fontSize` explicitly** on every text node in the spec — never rely on Figma defaults. **However, in `library` or `tokens` mode, prefer `textStyleKey` over manual font properties. Only set `fontFamily`/`fontStyle`/`fontSize` manually if no library text style exists for the purpose.**
 
 ### D. Validation & Verification
@@ -147,7 +147,7 @@ The gate applies **only when you are about to call a Figma tool** — i.e., when
 ### J2. Library Components in Specs (Instance Type)
 
 41. **Use `type: "instance"` in specs to instantiate library or local components** directly within the atomic build process. This avoids rebuilding components from scratch when they already exist.
-42. **For published library components**, use `componentKey` — the key from the Figma library. Get component keys from the cache's `componentKeys` for the selected library (see Section R), or via `get_local_components` with `allPages: true` when scanning a library file.
+42. **For published library components**, use `componentKey` — the key from the Figma library. Get component keys from the library package's `componentKeys` (see Section R), or via `get_local_components` with `allPages: true` when scanning a library file.
 43. **For local components**, use `componentId` — the node ID of a component on the current page or document.
 44. **Apply overrides with `instanceOverrides`** — an array of `{childName, characters?, fillColor?, visible?}` objects. The builder searches for children by name within the instance and applies the overrides.
 45. **Instance nodes cannot have `children`** — use `instanceOverrides` instead. The component's structure comes from the source component.
@@ -197,9 +197,9 @@ The gate applies **only when you are about to call a Figma tool** — i.e., when
 
 ### M. Design Tokens / Variables
 
-> **MODE GATE: Rules 51–55 apply in `custom`, `create`, or `none` mode. In `library` or `tokens` mode, do NOT create variable collections, batch-create variables, or set up design tokens. Use `get_local_variables` (rule 50) or the library data cache (Section R) to READ existing library variables only. In `create` mode, all variable CRUD is unrestricted — you are authoring the DS. See also Section I (rules 32–35) for mandatory canvas placement rules.**
+> **MODE GATE: Rules 51–55 apply in `custom`, `create`, or `none` mode. In `library` or `tokens` mode, do NOT create variable collections, batch-create variables, or set up design tokens. Use the library package and resolved variables (Section R) to READ existing library variables only. In `create` mode, all variable CRUD is unrestricted — you are authoring the DS. See also Section I (rules 32–35) for mandatory canvas placement rules.**
 
-50. **Use `get_local_variables`** to explore the file's token system (colors, spacing, etc.) before making assumptions. **In `library` or `tokens` mode, prefer reading from the library data cache (Section R) first. Only call `get_local_variables` if the cache does not exist or is being refreshed. Do NOT create new variables in these modes.**
+50. **Use `get_local_variables`** to explore the file's token system (colors, spacing, etc.) before making assumptions. **In `library` or `tokens` mode, prefer reading from the library package and resolved variables (Section R) first. Only call `get_local_variables` if the resolution file does not exist. Do NOT create new variables in these modes.**
 51. **(`custom`/`create`/`none` mode ONLY)** Use `create_variable_collection` to set up token groups (e.g. "Brand Colors" with "Light" and "Dark" modes).
 52. **(`custom`/`create`/`none` mode ONLY)** Use `batch_create_variables` when adding 3+ variables — it's 10-50x faster than individual `create_variable` calls.
 53. **(`custom`/`create`/`none` mode ONLY)** Use `batch_update_variables` when updating 3+ variable values across modes.
@@ -210,7 +210,7 @@ The gate applies **only when you are about to call a Figma tool** — i.e., when
 
 > **MODE NOTE:** In `library` or `tokens` mode, variable IDs come from the library data cache or `get_local_variables` (which imports library variables). Do NOT call `setup_design_tokens` — that is for `custom` and `create` modes only.
 
-56. **Bind fills to variables using `fillVariable`** in the spec. **In `library` or `tokens` mode:** get variable IDs from the library data cache (Section R) or `get_local_variables` (library import), then use `fillVariable: "VariableID:..."`. **In `custom` mode:** workflow is (1) `setup_design_tokens` to create variables, (2) note the returned variable IDs, (3) use `fillVariable: "VariableID:..."` in spec nodes alongside the `fill` RGB value.
+56. **Bind fills to variables using `fillVariable`** in the spec. **In `library` or `tokens` mode:** get variable IDs from the resolved variables file (Section R), then use `fillVariable: "VariableID:..."`. **In `custom` mode:** workflow is (1) `setup_design_tokens` to create variables, (2) note the returned variable IDs, (3) use `fillVariable: "VariableID:..."` in spec nodes alongside the `fill` RGB value.
 57. **Bind strokes to variables using `strokeVariable`**. Same pattern as fills — set `stroke` with the raw color, plus `strokeVariable` to bind.
 58. **Bind text colors to variables using `textFillVariable`** on text nodes. Works alongside the `fill` property.
 59. **Always provide both the raw color AND the variable ID.** The raw color is the fallback/initial value; the variable binding adds theme awareness. If the variable cannot be resolved at build time, the raw color is preserved.
@@ -218,12 +218,12 @@ The gate applies **only when you are about to call a Figma tool** — i.e., when
 ### M3. Library Variable Import
 
 59b. **In `library` or `tokens` mode, `get_local_variables` auto-imports all library variables.** When `includeLibrary` is true (the default), the tool calls `figma.teamLibrary.getAvailableLibraryVariableCollectionsAsync()` and imports every variable via `importVariableByKeyAsync`. The imported variable IDs are returned under `libraryVariables` and can be used directly with `fillVariable`/`strokeVariable`/`textFillVariable`.
-59c. **At the start of a `library` or `tokens` mode session, check the library data cache first** (see Section R). If the cache exists, use it — do NOT call `get_local_variables`. Only call `get_local_variables` if the cache is missing or the user requests a refresh.
+59c. **At the start of a `library` or `tokens` mode session, check the library package and resolved variables first** (see Section R). If both exist, use them — do NOT call `get_local_variables`. Only call `get_local_variables` if the resolution file is missing.
 
 ### M4. Style Binding in Specs
 
 59d. **Bind library styles using style keys** in the spec. The spec supports `fillStyleKey`, `strokeStyleKey`, `textStyleKey`, and `effectStyleKey`. Each imports a published library style by key and applies it to the node.
-59e. **Use `get_node_styles`** to discover style keys from library component instances. Workflow: (1) `create_instance` of a library component, (2) `get_node_styles` on it to extract all paint/text/effect style keys, (3) use those keys in specs, (4) remove the temporary instance (rule 68). **In `library` or `tokens` mode, check the library data cache (Section R) first — style keys may already be cached, avoiding this workflow entirely.**
+59e. **Use `get_node_styles`** to discover style keys from library component instances. Workflow: (1) `create_instance` of a library component, (2) `get_node_styles` on it to extract all paint/text/effect style keys, (3) use those keys in specs, (4) remove the temporary instance (rule 68). **In `library` or `tokens` mode, check the library package first (Section R) — style keys are pre-packaged, avoiding this workflow entirely.**
 59f. **Style binding overrides manual properties.** When a `textStyleKey` is applied, it sets font family, size, style, etc. from the style definition — any manually specified font properties on that node are replaced.
 59g. **In `library` or `tokens` mode, prefer style keys over manual font/color properties.** Never hardcode `fontFamily`/`fontSize`/`fontStyle` or `fill` RGB values when a library style exists for that purpose.
 
@@ -250,33 +250,29 @@ The gate applies **only when you are about to call a Figma tool** — i.e., when
 69. **Delete superseded builds.** When rebuilding a screen (e.g. fixing fills, correcting layout), delete the old version(s) after confirming the new build is correct. Do not leave duplicate or stale frames on the canvas.
 70. **Track node IDs of temporary creations.** When creating temporary nodes (e.g. `build_from_spec` for style discovery), immediately note the returned `rootNodeId` and delete it as soon as the information is extracted — within the same logical operation, not deferred to later.
 
-### R. Library Data Caching
+### R. Library Package Loading
 
-> **Applies to `library` and `tokens` modes only.** `custom`, `create`, and `none` modes do not use the library cache. The cache is **library-agnostic** — it works with any Figma design system library, organized per-library.
+> **Applies to `library` and `tokens` modes only.** `custom`, `create`, and `none` modes do not use library packages. Library packages are **pre-built, tested, versioned artifacts** distributed with the bridge — they are NOT generated at runtime.
 
-71. **Check the cache before calling Figma.** On the first design operation in a session, check if `.cursor/cache/library-data.json` exists and has `selectedLibraries`. If it does, read it and use the cached data for all subsequent operations. Do NOT call `discover_libraries`, `get_local_variables`, `get_node_styles`, or `get_available_fonts` from Figma when the cache is available.
-72. **Build the cache when it is missing.** If the cache file does not exist, run the full discovery and caching flow:
-    1. Call `discover_libraries` to list all design system libraries attached to the current Figma file.
-    2. If multiple libraries are found, present the full list to the user and let them select one or more. If only one, confirm and proceed.
-    3. Call `get_local_variables` with `includeLibrary: true` to import variables for the selected libraries. Group the returned `libraryCollections` by `libraryName` and build `variableLookup` maps per-library.
-    4. Call `get_available_fonts` to discover available fonts.
-    5. Write the combined results to `.cursor/cache/library-data.json` with the per-library structure. Create the `.cursor/cache/` directory if it does not exist.
-73. **Cache file structure.** The JSON file must include: `lastFetched` (ISO timestamp), `selectedLibraries` (array of library names the user selected), `libraries` (map of library name to per-library data with `variableLookup`, `styleKeys`, `componentKeys`), and `fonts` (array of available font family names). See `design-system-config.mdc` for the full structure.
-74. **Never refetch within a session.** Once the cache has been read or built, use it for the remainder of the session. Do not call `discover_libraries`, `get_local_variables`, or `get_node_styles` again unless the user explicitly requests a cache refresh.
-75. **Manual refresh.** When the user says "refresh cache", "update library cache", "rebuild cache", or similar, fetch fresh data from Figma and overwrite `.cursor/cache/library-data.json`. Re-run the full discovery flow (rule 72).
-76. **Use `variableLookup` for fast variable resolution.** When building specs, look up variable IDs by name in `libraries[selectedLibrary].variableLookup` (e.g. `libraries["My Design System"].variableLookup["primary/main"]` returns `"VariableID:abc/123:456"`). This avoids scanning the full variables array.
-77. **Use `styleKeys` for fast style resolution.** When applying text styles, look up the key by style name in `libraries[selectedLibrary].styleKeys.textStyles`. Same pattern for `paintStyles` and `effectStyles`.
+71. **Check the library package before calling Figma.** On the first design operation in a session, check if `.cursor/libraries/<library-name>/library.json` exists. If it does, read it and use the package data for all subsequent operations. Do NOT call `discover_libraries`, `get_local_components`, `get_local_styles`, or `get_available_fonts` from Figma when the package is available.
+72. **Resolve variable IDs when missing.** If `.cursor/cache/resolved-variables.json` does not exist (or references a different library version):
+    1. Call `get_local_variables` with `includeLibrary: true` to import library variables and get their file-local IDs.
+    2. Map variable names from the library package to the returned variable IDs.
+    3. Write the result to `.cursor/cache/resolved-variables.json`. This is the only runtime step.
+73. **If the library package is missing**, inform the user: "Library package not found in `.cursor/libraries/`. Please run `setup.js` to install it, or fall back to runtime discovery." If the user opts for runtime discovery, use the legacy flow: call `discover_libraries`, scan the library, and build a package.
+74. **Never refetch within a session.** Once the package has been read and variables resolved, use that data for the remainder of the session. Do not re-read the package or re-resolve variables unless explicitly requested.
+75. **Manual re-resolution.** When the user says "refresh variables", "re-resolve", or similar, delete `.cursor/cache/resolved-variables.json` and re-run the resolution flow (rule 72). The library package itself is never modified at runtime — only the resolution file is regenerated.
+76. **Use `variables` for variable lookup.** When building specs, look up variable names in the package's `variables` section to find keys, then look up the corresponding file-local IDs in `resolved-variables.json`.
+77. **Use `styleKeys` for fast style resolution.** When applying text styles, look up the key by style name in the package's `styleKeys.textStyles`. Same pattern for `paintStyles` and `effectStyles`.
 
-### R2. Component Key Caching
+### R2. Component & Usage Notes Lookup
 
-> **Applies to `library` mode only.** Component keys are auto-populated by scanning the library file.
+> **Applies to `library` mode only.** Component keys and usage notes are stored in the library package.
 
-78. **If the cache has no `componentKeys` for the selected library**, tell the user: "I need to scan components from the [Library Name] library. Please open the library file in Figma and let me know when it's ready."
-79. **Once the library file is open**, call `get_local_components` with `allPages: true` to scan all components in the document. Also call `get_local_styles` to discover all style keys (which now include the `key` property).
-80. **Organize component data by component set.** Group the returned components by `componentSetName`. For each component set, store the `componentSetKey` and a `variants` map (variant name string → component key). Also update `styleKeys` from the `get_local_styles` response.
-81. **Write component data to the cache** under `libraries[libraryName].componentKeys` and set `componentsScannedAt` to the current timestamp.
-82. **This is a one-time operation.** Once component keys are cached, they persist across sessions. Only re-scan if the user requests a cache refresh or the library is updated.
-83. **Use `componentKeys` for fast component lookup.** When building specs, look up the component set by name in `libraries[selectedLibrary].componentKeys`, then find the variant key matching the desired property combination.
+78. **Use `componentKeys` for component lookup.** When building specs, look up the component set by name in the package's `componentKeys`, then find the variant key matching the desired property combination.
+79. **Use `usageNotes` for intelligent component configuration.** Before instantiating a component, check the package's `usageNotes` for that component. Apply the appropriate `context_rules` — hide unnecessary children, show relevant ones, override text with contextually appropriate values. Never use a component "as-is" with all default decorations visible.
+80. **Use `globalRules` for override guidance.** Check `globalRules.override_gotchas` for known issues with specific components (e.g., duplicate child names). Use path syntax (`"Parent > Child"`) in `instanceOverrides` when child names are ambiguous.
+81. **Package data is immutable at runtime.** Component keys, style keys, usage notes, and global rules are authored and tested before distribution. They are never modified by the AI during design operations. If a component key is wrong or a usage note is outdated, the fix goes in the source package, not at runtime.
 
 ### S. Semantic Token Usage
 

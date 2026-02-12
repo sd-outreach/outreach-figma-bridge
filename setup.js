@@ -26,10 +26,30 @@ const SERVER_BIN = path.join(DIST_ROOT, "bin", "server.js");
 const CURSOR_RULES_SRC = path.join(DIST_ROOT, "rules", "cursor");
 const VSCODE_RULES_SRC = path.join(DIST_ROOT, "rules", "vscode");
 const SPECS_SRC = path.join(DIST_ROOT, "specs");
+const LIBRARIES_SRC = path.join(DIST_ROOT, "libraries");
 
 const HOME = os.homedir();
 const CURSOR_DIR = path.join(HOME, ".cursor");
-const VSCODE_DIR = path.join(HOME, ".vscode");
+
+// VS Code stores user-level mcp.json in the standard user data directory,
+// NOT in ~/.vscode/ (which is for CLI/extensions metadata).
+//   macOS:   ~/Library/Application Support/Code/User/
+//   Linux:   ~/.config/Code/User/
+//   Windows: %APPDATA%/Code/User/
+function getVSCodeUserDir() {
+  switch (process.platform) {
+    case "darwin":
+      return path.join(HOME, "Library", "Application Support", "Code", "User");
+    case "linux":
+      return path.join(HOME, ".config", "Code", "User");
+    case "win32":
+      return path.join(process.env.APPDATA || path.join(HOME, "AppData", "Roaming"), "Code", "User");
+    default:
+      // Fallback for unknown platforms
+      return path.join(HOME, ".config", "Code", "User");
+  }
+}
+const VSCODE_USER_DIR = getVSCodeUserDir();
 
 const MCP_SERVER_NAME = "outreach-figma-bridge";
 const BRIDGE_PORT = "3055";
@@ -148,6 +168,26 @@ function copyDir(src, dest, fileFilter) {
   return copied;
 }
 
+function copyDirRecursive(src, dest) {
+  if (!fs.existsSync(src)) return 0;
+  if (!fs.existsSync(dest)) {
+    fs.mkdirSync(dest, { recursive: true });
+  }
+  let count = 0;
+  const entries = fs.readdirSync(src, { withFileTypes: true });
+  for (const entry of entries) {
+    const srcPath = path.join(src, entry.name);
+    const destPath = path.join(dest, entry.name);
+    if (entry.isDirectory()) {
+      count += copyDirRecursive(srcPath, destPath);
+    } else {
+      fs.copyFileSync(srcPath, destPath);
+      count++;
+    }
+  }
+  return count;
+}
+
 function ensureDir(dir) {
   if (!fs.existsSync(dir)) {
     fs.mkdirSync(dir, { recursive: true });
@@ -177,11 +217,11 @@ function detectEditors() {
       mcpConfigKey: "mcpServers",
     });
   }
-  if (fs.existsSync(VSCODE_DIR)) {
+  if (fs.existsSync(VSCODE_USER_DIR)) {
     editors.push({
       name: "VS Code",
-      configDir: VSCODE_DIR,
-      mcpConfigPath: path.join(VSCODE_DIR, "mcp.json"),
+      configDir: VSCODE_USER_DIR,
+      mcpConfigPath: path.join(VSCODE_USER_DIR, "mcp.json"),
       mcpConfigKey: "servers",
     });
   }
@@ -333,10 +373,60 @@ function copyProjectRules(projectDir, editors, version) {
     }
   }
 
-  // ── Cache directory ──
+  // ── Library packages ──
+  const librariesDest = path.join(projectDir, ".cursor", "libraries");
+  if (fs.existsSync(LIBRARIES_SRC)) {
+    const entries = fs.readdirSync(LIBRARIES_SRC, { withFileTypes: true });
+    const libDirs = entries.filter(
+      (e) => e.isDirectory() && !e.name.startsWith(".")
+    );
+
+    if (libDirs.length > 0) {
+      let totalFiles = 0;
+      const libNames = [];
+      for (const libDir of libDirs) {
+        const srcLib = path.join(LIBRARIES_SRC, libDir.name);
+        const destLib = path.join(librariesDest, libDir.name);
+        const fileCount = copyDirRecursive(srcLib, destLib);
+        totalFiles += fileCount;
+        libNames.push(libDir.name);
+      }
+      // Also copy the README if present
+      const readmeSrc = path.join(LIBRARIES_SRC, "README.md");
+      if (fs.existsSync(readmeSrc)) {
+        ensureDir(librariesDest);
+        fs.copyFileSync(readmeSrc, path.join(librariesDest, "README.md"));
+        totalFiles++;
+      }
+      if (totalFiles > 0) {
+        logStatus(
+          ".cursor/libraries/",
+          "copied",
+          `${libNames.length} library package(s): ${libNames.join(", ")}`
+        );
+        copiedAnything = true;
+      }
+    } else {
+      // No library subdirectories yet — just ensure the directory exists
+      if (ensureDir(librariesDest)) {
+        logStatus(".cursor/libraries/", "installed", "created (no packages yet)");
+        copiedAnything = true;
+      } else {
+        logStatus(".cursor/libraries/", "current", "exists");
+      }
+    }
+  } else {
+    // No libraries directory in distribution — ensure the directory exists for future use
+    if (ensureDir(librariesDest)) {
+      logStatus(".cursor/libraries/", "installed", "created");
+      copiedAnything = true;
+    }
+  }
+
+  // ── Cache directory (runtime variable resolution only) ──
   const cacheDir = path.join(projectDir, ".cursor", "cache");
   if (ensureDir(cacheDir)) {
-    logStatus(".cursor/cache/", "installed", "created");
+    logStatus(".cursor/cache/", "installed", "created (runtime resolution)");
     copiedAnything = true;
   } else {
     logStatus(".cursor/cache/", "current", "exists");
