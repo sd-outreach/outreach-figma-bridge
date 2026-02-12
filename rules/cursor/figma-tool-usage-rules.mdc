@@ -10,27 +10,53 @@ These rules govern **how to use the Figma MCP bridge tools**. They are design-sy
 
 > **MODE GATE: Before executing ANY design operation, read `design-system-config.mdc` to determine the active mode (`library`, `tokens`, `custom`, or `none`). The active mode is declared in `## Current Mode:` at the top of that file. Rules in this file that are marked with a mode condition (e.g. "only in `custom` mode") MUST be skipped if that mode is not active. When the active mode is `library` or `tokens`, you MUST NOT use token-file-based workflows (`setup_design_tokens`, hardcoded RGB values). When the active mode is `library`, you MUST use library component instances where they exist. See the MODE ENFORCEMENT section in `design-system-config.mdc` for the full list of prohibitions.**
 
-### RULE ZERO — Verify Setup and Connection (must run first)
+### RULE ZERO — Connection Gate (MANDATORY before any Figma tool call)
 
-**Before your first design operation in any session**, perform these two checks in order:
+> **This is a hard gate. NEVER call any Figma tool (build, read, modify, inspect — anything) until BOTH conditions below are confirmed. There are ZERO exceptions.**
 
-1. **Call `verify_workspace_setup`** with the absolute path to the workspace root. This checks that all required rule files and supporting directories are in place.
-   - If the tool reports **SETUP INCOMPLETE**: **STOP.** Do not proceed with any design operations. Tell the user to run the setup script:
-     ```
-     cd <project-directory>
-     node ~/outreach-figma-bridge/setup.js
-     ```
-     Then restart their editor.
-   - If the tool reports **SETUP VERIFIED**: Continue to step 2.
+#### When the gate applies
 
-2. **Call `check_health`** to confirm the Figma connection pipeline is live.
-   - If it reports **CONNECTION HEALTHY**: Proceed normally with the rest of the rules.
-   - If it reports **CONNECTION PROBLEM**: **STOP.** Tell the user exactly what the tool says and do NOT attempt design operations until the issue is resolved. Common problems:
-     - **Port conflict** — another editor already has the MCP server running on the same port.
-     - **No Figma plugin** — the Figma plugin is not running or not connected.
-     - **Server not running** — the WebSocket server failed to start.
+The gate applies **only when you are about to call a Figma tool** — i.e., when you are about to execute an action that talks to Figma. This includes **all** MCP tools registered by the Figma bridge (build, read, inspect, modify, scan, etc.).
 
-- You only need to run these checks **once per session**, not before every operation.
+#### When the gate does NOT apply
+
+- **Plan mode / discussion / brainstorming**: If the user is asking questions, planning a design, discussing approaches, reviewing specs, or working in plan mode — you do NOT need to run the gate. You can freely discuss, plan, and draft specs without a Figma connection.
+- **Non-Figma work**: Editing code, reading files, running commands, or any task that doesn't involve calling a Figma MCP tool.
+- **Spec drafting**: Writing or editing `.cursor/specs/*.json` files is pure file work — no gate needed. The gate is only needed when you **build** the spec in Figma.
+
+#### Gate procedure
+
+**Before your first Figma tool call in a conversation**, perform these two checks in order:
+
+1. **Call `verify_workspace_setup`** with the absolute path to the workspace root.
+   - **SETUP INCOMPLETE** → **FULL STOP.** Tell the user:
+     > "Workspace rules are not installed. Please run:
+     > ```
+     > cd <project-directory>
+     > node ~/outreach-figma-bridge/setup.js
+     > ```
+     > Then restart your editor and try again."
+   - **SETUP VERIFIED** → Continue to step 2.
+
+2. **Call `check_health`** to confirm the MCP server is listening AND a Figma plugin is connected.
+   - **CONNECTION HEALTHY** → Gate passed. You may now proceed with design operations.
+   - **ANY other result** → **FULL STOP.** Do the following:
+     1. **Tell the user exactly what is wrong** (quote the check_health output).
+     2. **Tell the user what to fix** — be specific:
+        - If the server is not running: "Restart your editor."
+        - If no Figma plugin is connected: "Open Figma, run Plugins → Outreach Figma MCP Bridge, and wait for the Connected indicator."
+        - If ports are all occupied: "Close another editor or restart this one."
+     3. **Call `wait_for_connection`** to block until the issue is resolved. This tool polls every 3 seconds (default timeout: 120s) and returns **CONNECTION READY** once both the server and plugin are connected.
+     4. **If `wait_for_connection` returns CONNECTION TIMEOUT**: Tell the user the connection is still not ready, repeat the fix instructions, and ask them to say "check again" or "retry" when they've fixed it. **Do NOT proceed.**
+     5. **If `wait_for_connection` returns CONNECTION READY**: Gate passed. Proceed with design operations.
+
+#### Enforcement rules
+
+- The gate triggers **once per conversation**, the first time you are about to call a Figma tool. After it passes, you do not need to re-run it for subsequent tool calls in the same conversation.
+- If the gate fails, you MUST NOT call **any** Figma tool: no `scan_page`, no `get_node_by_id`, no `build_from_spec`, no `read_my_design`, no `find_nodes_by_name` — nothing. The only Figma-related tools you may call are `verify_workspace_setup`, `check_health`, and `wait_for_connection`.
+- You CAN still discuss, plan, draft specs, edit code, or do anything that doesn't require calling a Figma tool.
+- If the user says "check again", "retry", "try now", or similar after a gate failure, call `check_health` (or `wait_for_connection`) again. Only proceed if it returns healthy.
+- If a Figma tool call fails mid-conversation with a connection error, call `check_health` to re-verify before continuing.
 
 ### A. Atomic Building (highest-velocity path)
 
