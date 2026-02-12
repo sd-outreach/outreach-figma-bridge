@@ -19,10 +19,10 @@ You can open any `.json` file here and modify it. Then tell the AI:
 
 ```bash
 # Validate all specs
-node .cursor/specs/validate-spec.js
+node .cursor/specs/validate-spec.cjs
 
 # Validate a single spec
-node .cursor/specs/validate-spec.js .cursor/specs/login-screen.json
+node .cursor/specs/validate-spec.cjs .cursor/specs/my-screen.json
 ```
 
 ## Spec format

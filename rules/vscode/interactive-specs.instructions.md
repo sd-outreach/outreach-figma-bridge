@@ -36,7 +36,7 @@ Workflow:
 1. Construct the spec object
 2. **Write the spec to `.cursor/specs/<name>.json`** using the Write tool
 3. Tell the user: "Saved spec to `.cursor/specs/<name>.json`" (so they know it exists and can review it)
-4. Run validation: `node .cursor/specs/validate-spec.js .cursor/specs/<name>.json`
+4. Run validation: `node .cursor/specs/validate-spec.cjs .cursor/specs/<name>.json`
 5. If validation has **errors**: fix the spec, re-save, re-validate — do NOT build until clean
 6. If validation has only **warnings**: note them to the user, proceed to build
 7. Build in Figma using `build_and_verify` (preferred) or `build_from_spec`
@@ -58,7 +58,7 @@ When rebuilding a design (e.g. fixing issues, user requested changes):
 
 When the user says "rebuild <name>", "apply <name>", or similar — or when you detect that a spec file has been modified:
 1. Read the spec from `.cursor/specs/<name>.json`
-2. Run validation: `node .cursor/specs/validate-spec.js .cursor/specs/<name>.json`
+2. Run validation: `node .cursor/specs/validate-spec.cjs .cursor/specs/<name>.json`
 3. **If errors**: Report them clearly to the user with the exact error messages. Do NOT build. Suggest fixes.
 4. **If valid/warnings only**: Proceed to build in Figma
 5. If there's an existing Figma build from a previous version of this spec, delete it first
@@ -129,7 +129,7 @@ When a spec is explicitly abandoned:
 ### T8. Validation-Only Mode
 
 When the user says "validate my specs", "check specs", or similar:
-1. Run `node .cursor/specs/validate-spec.js .cursor/specs/`
+1. Run `node .cursor/specs/validate-spec.cjs .cursor/specs/`
 2. Report the results
 3. Do NOT build anything
 
@@ -140,7 +140,7 @@ When the user says "validate my specs", "check specs", or similar:
 ```
 .cursor/specs/
 ├── README.md              # How this directory works
-├── validate-spec.js       # Validation script
+├── validate-spec.cjs       # Validation script
 ├── _manifest.json         # Multi-screen project tracker (optional)
 ├── login-screen.json      # Individual spec files
 ├── signup-screen.json

@@ -727,7 +727,7 @@ Toggle buttons are used to switch between multiple views or contextual states.
 
 | User says... | Use variant |
 |---|---|
-| "text field" / "input" / "text input" | Medium, text only, no helper, with label → `9609c0c0a1503368b1ff9e0d3c232e9c8251f5af` |
+| "text field" / "input" / "text input" | Small, text only, no helper, no label → `05559a8adb0683693bfb8e1dffb090483a852ba8` |
 | "small text field" | Small, text only, no helper, with label → `56b9138acb43d846b4f8c20994871107b7b3647c` |
 | "text field with icon" | Medium, icon left, no helper, with label → `cc4ce8d289b6b5c9bd5a954b3330d5adcea1bb7c` |
 | "text field with helper" | Medium, text only, with helper, with label → `41e4ec8db9623ad5c9efb2f565ad08815b8f5fa6` |
@@ -738,7 +738,7 @@ Toggle buttons are used to switch between multiple views or contextual states.
 {
   "name": "Email Input",
   "type": "instance",
-  "componentKey": "9609c0c0a1503368b1ff9e0d3c232e9c8251f5af"
+  "componentKey": "05559a8adb0683693bfb8e1dffb090483a852ba8"
 }
 ```
 
@@ -1403,6 +1403,838 @@ Toggle buttons are used to switch between multiple views or contextual states.
   "name": "Plan Selection Card",
   "type": "instance",
   "componentKey": "b9a2bce424a4cd28e4fe827834e2870acf6935a3"
+}
+```
+
+---
+
+## Avatar
+
+**Component Set Key**: `0d83894fecced3a0bc35f0ed11720d36a06af521` (reference only — do not use for instantiation)
+
+An avatar acts as a proxy for a user, they come in four sizes, and they can be found throughout our product with uses in everything from listviews (tables) to dialog menus.
+
+### Variant Axes
+
+| Axis | Options | Default |
+|------|---------|---------|
+| **Content** | `Text`, `Icon`, `Logo`, `Image`, `Group` | `Text` |
+| **Size** | `Small`, `Medium`, `Large`, `X-large`, `Single`, `Double`, `Triple` | `Small` |
+
+> 19 total variants. `Group` content uses `Single`/`Double`/`Triple` sizes to show 1–3 overlapping avatars.
+
+### Component Properties
+
+| Property | Type | Default | Override Example |
+|----------|------|---------|-----------------|
+| **Custom Image** (`Custom Image#55692:0`) | BOOLEAN | `false` | `{"childName": "Custom Image", "visible": true}` |
+
+### Variant Key Lookup
+
+**Individual Avatars**
+
+| Content | Small | Medium | Large | X-large |
+|---------|-------|--------|-------|---------|
+| Text | `46138f766bc638903b9ae358165309279bbfba75` | `1de57895a395467eef303aed805710969dc1ee54` | `e5a9ce09d11819991792f1ea1181f2dc6e3c967b` | `3b64c5455363181987a8a9101f940d313f3583ca` |
+| Icon | `b2b9cce2c3f0a4fe2cc2778e87805636f8989842` | `92c71c6d88731c80ed05d3b43e22acaba7b7d5be` | `0a75523dec22c6b3fb4da0ce3b0609515d68df67` | `d72bee44e348986a43df30dcdef066647fb9cebf` |
+| Logo | `f59f5c048221c5dc167d7140236c28f041408a75` | `d6ec4487a3353823c648ab8e5b60bdaad0f9d68d` | `e84bddcbecbfe10e1187dd19920311f12dea347d` | `e7377cc629bf216cb6555071cfa3c3562e3a7998` |
+| Image | `ff00ccbad85415d424f07b72edd8fdb9123e6f5b` | `58052bd1b82e216889af73175fa6c655e026589d` | `3ef75b99cfea5424683060fd87a32681cdda7fce` | `13cb2cbea243c1605f2e5d133a89211001627141` |
+
+**Group Avatars**
+
+| Size | Component Key |
+|------|--------------|
+| Single | `5a4cd8a8024f3b868eb3d929e630662d80e0690e` |
+| Double | `64f60b5d762f83698637a273b979a8cf2b9b8cf7` |
+| Triple | `cb32028d1e2244c128ad97c880f098b0f9db82bc` |
+
+### Quick Reference
+
+| User says... | Use variant |
+|---|---|
+| "avatar" / "user avatar" | Text, Medium → `1de57895a395467eef303aed805710969dc1ee54` |
+| "small avatar" | Text, Small → `46138f766bc638903b9ae358165309279bbfba75` |
+| "large avatar" | Text, Large → `e5a9ce09d11819991792f1ea1181f2dc6e3c967b` |
+| "avatar with image" / "photo avatar" | Image, Medium → `58052bd1b82e216889af73175fa6c655e026589d` |
+| "icon avatar" | Icon, Medium → `92c71c6d88731c80ed05d3b43e22acaba7b7d5be` |
+| "logo avatar" | Logo, Medium → `d6ec4487a3353823c648ab8e5b60bdaad0f9d68d` |
+| "avatar group" / "stacked avatars" | Group, Double → `64f60b5d762f83698637a273b979a8cf2b9b8cf7` |
+
+### Spec Example
+
+```json
+{
+  "name": "User Avatar",
+  "type": "instance",
+  "componentKey": "1de57895a395467eef303aed805710969dc1ee54"
+}
+```
+
+---
+
+## Chip
+
+**Component Set Key**: `eaf896a3e1a400c0333c34404a9650d59c4ad55b` (reference only — do not use for instantiation)
+
+### Variant Axes
+
+| Axis | Options | Default |
+|------|---------|---------|
+| **color** | `default`, `primary`, `primary (deprecated)` | `default` |
+| **size** | `small`, `medium` | `small` |
+| **count** | `yes`, `no` | `no` |
+| **removable** | `yes`, `no` | `no` |
+| **state** | `default`, `hover`, `active`, `disabled`, `removable default` | `default` |
+| **remove hover** | `yes`, `no` | `no` |
+| **color mark (beta)** | `yes`, `no` | `no` |
+| **icon** | `yes`, `no` | `no` |
+
+> 100 total variants. Use `color=default` for standard chips. `primary (deprecated)` is legacy — avoid.
+
+### Variant Key Lookup (state=default, color=default, remove hover=no, color mark=no, icon=no)
+
+| Size | Count | Removable | Component Key |
+|------|-------|-----------|--------------|
+| small | no | no | `2dbf76885c87be95bc5d50bd515ca6e2dcbb59ea` |
+| small | no | yes | `d078a96624e792c0589cdf6c81f2a8c6f3d48ff5` |
+| small | yes | no | `2ec0a138ac02832ff13fe7982269d9e884924f0b` |
+| small | yes | yes | `3b1899ac5a53a04dd159b241dbee648df26f29eb` |
+| medium | no | no | `7f9dcbbc66aca60ceaf0d01f4f81ef44479f6748` |
+| medium | no | yes | `2bf41d4c53289dc7ced9e853dce58b37254aea4d` |
+| medium | yes | no | `c39b74173c15a32b0f2204200a14ee84f2d9962c` |
+| medium | yes | yes | `b825e0d0076a099ac6968a3a5916fd5b87307fac` |
+
+### Quick Reference
+
+| User says... | Use variant |
+|---|---|
+| "chip" / "tag chip" | Default, small, no count, not removable → `2dbf76885c87be95bc5d50bd515ca6e2dcbb59ea` |
+| "removable chip" / "dismissable chip" | Default, small, no count, removable → `d078a96624e792c0589cdf6c81f2a8c6f3d48ff5` |
+| "chip with count" / "numbered chip" | Default, small, with count, not removable → `2ec0a138ac02832ff13fe7982269d9e884924f0b` |
+| "medium chip" / "large chip" | Default, medium, no count, not removable → `7f9dcbbc66aca60ceaf0d01f4f81ef44479f6748` |
+
+### Spec Example
+
+```json
+{
+  "name": "Filter Chip",
+  "type": "instance",
+  "componentKey": "2dbf76885c87be95bc5d50bd515ca6e2dcbb59ea"
+}
+```
+
+---
+
+## Tooltip
+
+**Component Set Key**: `9464e2fbde56fcfd283b48bcbcf734c1c509c1b6` (reference only — do not use for instantiation)
+
+Tooltips display informative text when users hover over, focus on, or tap an element.
+
+### Variant Axes
+
+| Axis | Options | Default |
+|------|---------|---------|
+| **Arrow direction** | `Up`, `Down`, `Right`, `Left`, `None` | `None` |
+
+### Component Properties
+
+| Property | Type | Default | Override Example |
+|----------|------|---------|-----------------|
+| **Text** (`Text#41684:0`) | TEXT | `"My tooltip"` | `{"childName": "Text", "characters": "Click to save"}` |
+
+### Variant Key Lookup
+
+| Arrow Direction | Component Key |
+|-----------------|--------------|
+| None | `da998deb2e81a85a241f4db71c076a11d8def9d7` |
+| Up | `eafd8b1394bec20c8932b5bbb47069272900ec3c` |
+| Down | `292e7d8ce6bca937a31202b1817dbebc9cdc0779` |
+| Right | `d67347555e2d5e6152a080d3db68740100bde74a` |
+| Left | `69b408dc4da8e795e9ce6bac8c13da933e3da33d` |
+
+### Quick Reference
+
+| User says... | Use variant |
+|---|---|
+| "tooltip" | Arrow direction=None → `da998deb2e81a85a241f4db71c076a11d8def9d7` |
+| "tooltip with arrow" / "tooltip pointing up" | Arrow direction=Up → `eafd8b1394bec20c8932b5bbb47069272900ec3c` |
+| "tooltip pointing down" | Arrow direction=Down → `292e7d8ce6bca937a31202b1817dbebc9cdc0779` |
+
+### Spec Example
+
+```json
+{
+  "name": "Help Tooltip",
+  "type": "instance",
+  "componentKey": "da998deb2e81a85a241f4db71c076a11d8def9d7",
+  "instanceOverrides": [
+    {"childName": "Text", "characters": "Click to save changes"}
+  ]
+}
+```
+
+---
+
+## Divider
+
+**Component Set Key**: `bd8383c1c59f6be79d26dce79eeb99791c22546e` (reference only — do not use for instantiation)
+
+### Variant Axes
+
+| Axis | Options | Default |
+|------|---------|---------|
+| **orientation** | `horizontal`, `vertical` | `horizontal` |
+| **color** | `default`, `inverse` | `default` |
+
+### Variant Key Lookup
+
+| Orientation | Color | Component Key |
+|-------------|-------|--------------|
+| horizontal | default | `54202d31af90990ac53ba5ea6bb591f4311ca405` |
+| horizontal | inverse | `1d6ddf0979daa28f4eca8d3069c188d4bf838e93` |
+| vertical | default | `16790f9840090555c9196c3aff502ad9005e25ad` |
+| vertical | inverse | `829d8e6251fb8148788a01c3d40e2f5e524ad7b1` |
+
+### Quick Reference
+
+| User says... | Use variant |
+|---|---|
+| "divider" / "separator" / "horizontal line" | Horizontal, default → `54202d31af90990ac53ba5ea6bb591f4311ca405` |
+| "vertical divider" / "vertical separator" | Vertical, default → `16790f9840090555c9196c3aff502ad9005e25ad` |
+| "inverse divider" / "divider on dark" | Horizontal, inverse → `1d6ddf0979daa28f4eca8d3069c188d4bf838e93` |
+
+### Spec Example
+
+```json
+{
+  "name": "Section Divider",
+  "type": "instance",
+  "componentKey": "54202d31af90990ac53ba5ea6bb591f4311ca405"
+}
+```
+
+---
+
+## Status
+
+**Component Set Key**: `7c60b69b0afbc88833c9cc35e4aefa4a958645d6` (reference only — do not use for instantiation)
+
+### Variant Axes
+
+| Axis | Options | Default |
+|------|---------|---------|
+| **state** | `default`, `hover`, `focused`, `active` | `default` |
+| **style** | `primary`, `secondary`, `tertiary (icon only)` | `primary` |
+| **type** | `default`, `sucess`, `warning`, `error`, `info`, `secondary` | `default` |
+| **size** | `medium`, `small` | `medium` |
+
+> 80 total variants. Use `state=default` for static mockups.
+
+### Variant Key Lookup (state=default only)
+
+**Primary style**
+
+| Type | Size | Component Key |
+|------|------|--------------|
+| default | medium | `880ca1908ea31af3573b28480af3455fc0cab935` |
+| sucess | medium | — (use secondary style) |
+| warning | medium | `4c912b8cf20a9a926d026343eb7a973328bcee8b` |
+| error | medium | `069773fc1514700984025dffd79f25e0b60e32c9` |
+| info | medium | `9819d23470810ad7f4a801b5c14847f9f99cad81` |
+| secondary | medium | `e251bd0e1f0a63de063df04e58263ced245c1b61` |
+
+**Secondary style**
+
+| Type | Size | Component Key |
+|------|------|--------------|
+| default | medium | `cf2f9a679b607d2e145dbf545b0accd29311f96c` |
+| sucess | medium | `3cbaead51a6d2b744de8bdfe0f58fafec3aae908` |
+| warning | medium | `5aa1d2765b0a2344654b5823db646ed9f55e83c6` |
+| error | medium | `f80021a90cf2f3ad2743112ce2453859d0d38bdd` |
+| info | medium | `930fe78df1ea61498f92ac48d2d94f8652bc6ed3` |
+
+**Tertiary (icon only) style**
+
+| Type | Size | Component Key |
+|------|------|--------------|
+| default | medium | `fd8018048a48fb87263adf1f94e1ef27003fb09c` |
+| default | small | — |
+| sucess | medium | `85bb3f48220573f5bc67d92a8985a9d0d2bf17f3` |
+| sucess | small | `6fae21eb19b340517f3f02750981a30aaf3ebc44` |
+| warning | medium | `cef59272b112a05247cbd8ae6b6377477090cb29` |
+| warning | small | `0784b54ff83307f1f838304045d4f563b1166e5e` |
+| error | medium | `6334e76c1fd346e2a141bc0a5c3fbdb4fb8910db` |
+| error | small | `1aea64b06abd23b2b8a2cca3866fe16e62c1f3a5` |
+| info | small | `dc9f5447c6756e75e710812a99509e52b0f03057` |
+| secondary | medium | `c1a9e9f4effca6eb7f43c71885d7d6f98b54cc86` |
+| secondary | small | `321d9fbcaa620c16a0b18b9e95b3676c5d3e9c2c` |
+
+### Quick Reference
+
+| User says... | Use variant |
+|---|---|
+| "status" / "status indicator" | Primary, default, medium → `880ca1908ea31af3573b28480af3455fc0cab935` |
+| "success status" / "green status" | Secondary, sucess, medium → `3cbaead51a6d2b744de8bdfe0f58fafec3aae908` |
+| "warning status" / "yellow status" | Primary, warning, medium → `4c912b8cf20a9a926d026343eb7a973328bcee8b` |
+| "error status" / "red status" | Primary, error, medium → `069773fc1514700984025dffd79f25e0b60e32c9` |
+| "info status" / "blue status" | Primary, info, medium → `9819d23470810ad7f4a801b5c14847f9f99cad81` |
+| "status icon" / "icon-only status" | Tertiary, default, medium → `fd8018048a48fb87263adf1f94e1ef27003fb09c` |
+
+### Spec Example
+
+```json
+{
+  "name": "Task Status",
+  "type": "instance",
+  "componentKey": "880ca1908ea31af3573b28480af3455fc0cab935"
+}
+```
+
+---
+
+## Tag
+
+**Component Set Key**: `b1c8c19bd5087fad93682dbb191838b6ee9804c3` (reference only — do not use for instantiation)
+
+A tag is a visual indicator used to highlight metadata for scanning and quick recognition.
+
+### Variant Axes
+
+| Axis | Options | Default |
+|------|---------|---------|
+| **color** | `default`, `info`, `color3` | `default` |
+
+> `color3` is used for beta/new feature tags with a unique color language.
+
+### Variant Key Lookup
+
+| Color | Component Key |
+|-------|--------------|
+| default | `347b5dd99b54246079711ade77a0f783f10a1e5b` |
+| info | `0dcb21a45edac7bba4b29e94fb9b089fa0cabc97` |
+| color3 | `bed7d35607459125d09fab2da6c9da97f3e98b29` |
+
+### Quick Reference
+
+| User says... | Use variant |
+|---|---|
+| "tag" / "label tag" | Default → `347b5dd99b54246079711ade77a0f783f10a1e5b` |
+| "info tag" / "blue tag" | Info → `0dcb21a45edac7bba4b29e94fb9b089fa0cabc97` |
+| "beta tag" / "new tag" | Color3 → `bed7d35607459125d09fab2da6c9da97f3e98b29` |
+
+### Spec Example
+
+```json
+{
+  "name": "Feature Tag",
+  "type": "instance",
+  "componentKey": "347b5dd99b54246079711ade77a0f783f10a1e5b"
+}
+```
+
+---
+
+## Trend Indicator
+
+**Component Set Key**: `864e522520a50ab0c465250d9ea0f72b1b7cb28f` (reference only — do not use for instantiation)
+
+### Variant Axes
+
+| Axis | Options | Default |
+|------|---------|---------|
+| **type** | `default`, `with value` | `default` |
+| **size** | `medium`, `small` | `medium` |
+| **style** | `value`, `trend` | `value` |
+| **background** | `yes`, `no` | `no` |
+| **direction** | `up`, `flat`, `down` | `up` |
+
+> 48 total variants. `type=default` shows trend only; `type=with value` includes the numeric value alongside the trend.
+
+### Variant Key Lookup (type=default, background=no)
+
+| Size | Style | Direction | Component Key |
+|------|-------|-----------|--------------|
+| medium | value | up | `d06ebb231b353215444b2602d24028ad26caf425` |
+| medium | value | flat | `9c055acd51a1fd5af2125a71b3cf9b54c1397b81` |
+| medium | value | down | `f049c1185c2d1fd31874a84290e0779102558d66` |
+| medium | trend | up | `d44b2919046daac7cb7edb1b5054b2ff71497b56` |
+| medium | trend | flat | `1a31d86866cfce582d6c4620eb1fb3410d8faf62` |
+| medium | trend | down | `6348fbf191ba7039841d923769d9e65c605303ec` |
+| small | value | up | `14dc7fed3eb39eb42668ce939b7640d88d14cfb1` |
+| small | value | flat | `4200df2ab0900321102d3fd7a6924d8ac6faa26e` |
+| small | value | down | `69d4f79a64e03964cbef60ce87b267429e704dc8` |
+| small | trend | up | `bdb42ee8994c6170c856fcab2c7a07428ad96f20` |
+| small | trend | flat | `e53027bbf90b9f6e0385c65ae733fef6bd3cb0fd` |
+| small | trend | down | `59b6472e5544a30cda8ea88e2485e6e03428b735` |
+
+### Quick Reference
+
+| User says... | Use variant |
+|---|---|
+| "trend indicator" / "trend up" | Default, medium, value, no bg, up → `d06ebb231b353215444b2602d24028ad26caf425` |
+| "trend down" / "negative trend" | Default, medium, value, no bg, down → `f049c1185c2d1fd31874a84290e0779102558d66` |
+| "flat trend" / "neutral trend" | Default, medium, value, no bg, flat → `9c055acd51a1fd5af2125a71b3cf9b54c1397b81` |
+| "small trend indicator" | Default, small, value, no bg, up → `14dc7fed3eb39eb42668ce939b7640d88d14cfb1` |
+| "trend with sparkline" | Default, medium, trend, no bg, up → `d44b2919046daac7cb7edb1b5054b2ff71497b56` |
+
+### Spec Example
+
+```json
+{
+  "name": "Revenue Trend",
+  "type": "instance",
+  "componentKey": "d06ebb231b353215444b2602d24028ad26caf425"
+}
+```
+
+---
+
+## Timeline
+
+**Component Set Key**: `d84e54006a946c6c275101853a770efb89b77af6` (reference only — do not use for instantiation)
+
+### Variant Axes
+
+| Axis | Options | Default |
+|------|---------|---------|
+| **dot style** | `basic`, `icon`, `avatar` | `basic` |
+
+### Component Properties
+
+| Property | Type | Default | Override Example |
+|----------|------|---------|-----------------|
+| **right align** (`right align#9:0`) | BOOLEAN | `false` | `{"childName": "right align", "visible": true}` |
+| **left align** (`left align#9:4`) | BOOLEAN | `true` | `{"childName": "left align", "visible": false}` |
+
+### Variant Key Lookup
+
+| Dot Style | Component Key |
+|-----------|--------------|
+| basic | `b004b4ef037b16acbd33399c271b936faa6cf79b` |
+| icon | `cf4ee8cb1523ef38d432782a47ae1c49df66b508` |
+| avatar | `24e900284a85df84f361cc2473747ad53e48d6fc` |
+
+### Quick Reference
+
+| User says... | Use variant |
+|---|---|
+| "timeline" / "activity timeline" | Basic → `b004b4ef037b16acbd33399c271b936faa6cf79b` |
+| "timeline with icons" | Icon → `cf4ee8cb1523ef38d432782a47ae1c49df66b508` |
+| "timeline with avatars" | Avatar → `24e900284a85df84f361cc2473747ad53e48d6fc` |
+
+### Spec Example
+
+```json
+{
+  "name": "Activity Timeline",
+  "type": "instance",
+  "componentKey": "b004b4ef037b16acbd33399c271b936faa6cf79b"
+}
+```
+
+---
+
+## Accordion
+
+**Component Set Key**: `c4077694101eceb2e28aca8a8760b08050ffae6f` (reference only — do not use for instantiation)
+
+Max 5 accordion sections. Header uses single line text.
+
+### Variant Axes
+
+| Axis | Options | Default |
+|------|---------|---------|
+| **Count** | `2`, `3`, `4`, `5` | `2` |
+
+### Variant Key Lookup
+
+| Count | Component Key |
+|-------|--------------|
+| 2 | `76e68f6e496709c9bd35c420abedc77b35899c5f` |
+| 3 | `aea48cc710672189e69b917774035f72c7cac5ad` |
+| 4 | `5661c281846e35078fe5317719184433223f33e6` |
+| 5 | `a790ce8ce598779d317e7c4484bcacadb1bbb1c2` |
+
+### Quick Reference
+
+| User says... | Use variant |
+|---|---|
+| "accordion" / "expandable sections" | Count=3 → `aea48cc710672189e69b917774035f72c7cac5ad` |
+| "2 accordions" | Count=2 → `76e68f6e496709c9bd35c420abedc77b35899c5f` |
+| "FAQ accordion" / "5 sections" | Count=5 → `a790ce8ce598779d317e7c4484bcacadb1bbb1c2` |
+
+### Spec Example
+
+```json
+{
+  "name": "FAQ Accordion",
+  "type": "instance",
+  "componentKey": "aea48cc710672189e69b917774035f72c7cac5ad"
+}
+```
+
+---
+
+## Toast
+
+**Component Set Key**: `ec33e10b2dfa8e32be9220aa8f2e59460b59073c` (reference only — do not use for instantiation)
+
+### Variant Axes
+
+| Axis | Options | Default |
+|------|---------|---------|
+| **severity** | `info`, `warning`, `error`, `success`, `none` | `info` |
+| **breakpoint** | `0-639`, `640+` | `640+` |
+
+> 10 total variants. Use `breakpoint=640+` for desktop/wide layouts, `breakpoint=0-639` for mobile/narrow.
+
+### Variant Key Lookup
+
+**breakpoint=640+ (desktop)**
+
+| Severity | Component Key |
+|----------|--------------|
+| info | `11d3f5b65f08608b127875de8c2b1f47d0a70abe` |
+| warning | `09a014dfdf1ff34f07ee030fc0f60d8eab5cb1b2` |
+| error | `30a130d2cd90fe604e60cd1928e9882c638cae49` |
+| success | `4c995752c2a976772612dc967d7d49674f973bb9` |
+| none | `bb6991d77bae15f486b3cfb0579a524f7240f5e8` |
+
+**breakpoint=0-639 (mobile)**
+
+| Severity | Component Key |
+|----------|--------------|
+| info | `2d6c0610f1afe9184dbea4ce45e7add67913eabd` |
+| warning | `b284b4fe9f03fa1a6188103dbd221ab0a0071252` |
+| error | `e1985c15797f7864f8af50c9de5fd19c5f4f6e74` |
+| success | `570ea71b633ff951a5f8257bc39fc79717c87d91` |
+| none | `ae54c4ec5c0ed8c76d2a733d127f5ce629fbe104` |
+
+### Quick Reference
+
+| User says... | Use variant |
+|---|---|
+| "toast" / "notification toast" | Info, 640+ → `11d3f5b65f08608b127875de8c2b1f47d0a70abe` |
+| "success toast" | Success, 640+ → `4c995752c2a976772612dc967d7d49674f973bb9` |
+| "error toast" | Error, 640+ → `30a130d2cd90fe604e60cd1928e9882c638cae49` |
+| "warning toast" | Warning, 640+ → `09a014dfdf1ff34f07ee030fc0f60d8eab5cb1b2` |
+| "mobile toast" | Info, 0-639 → `2d6c0610f1afe9184dbea4ce45e7add67913eabd` |
+
+### Spec Example
+
+```json
+{
+  "name": "Save Confirmation Toast",
+  "type": "instance",
+  "componentKey": "4c995752c2a976772612dc967d7d49674f973bb9"
+}
+```
+
+---
+
+## Alert
+
+**Component Set Key**: `dfbe0fa8fd9ff628f8d08f0257d7838a37e7a4fd` (reference only — do not use for instantiation)
+
+### Variant Axes
+
+| Axis | Options | Default |
+|------|---------|---------|
+| **severity** | `info`, `warning`, `error`, `sucess` | `info` |
+| **breakpoint** | `0-639`, `640+` | `640+` |
+
+> 8 total variants. Note: "sucess" is the library's spelling (not "success"). Use `breakpoint=640+` for desktop.
+
+### Variant Key Lookup
+
+**breakpoint=640+ (desktop)**
+
+| Severity | Component Key |
+|----------|--------------|
+| info | `d6d1728076075a34c3af37384bfef03b3937c9c8` |
+| warning | `5e0ec25953692aaba4f35f4eb5ac5caebe581fce` |
+| error | `911eb315c0335078cc6d6a7aac3dfb3b4f6c79a4` |
+| sucess | `c47ba89813dd9c5d5fa3f5261752469c47c86277` |
+
+**breakpoint=0-639 (mobile)**
+
+| Severity | Component Key |
+|----------|--------------|
+| info | `07e35d571da8854b2917898d244a1887486fc2cd` |
+| warning | `c23985e3b77c57882f09e515e5fabf03858d8ef3` |
+| error | `92f7645ee544cec098f0837d506d1c403bcc0c7d` |
+| sucess | `cfeb3dc12d41e36a8fcd918d430d3263be8b6806` |
+
+### Quick Reference
+
+| User says... | Use variant |
+|---|---|
+| "alert" / "alert banner" | Info, 640+ → `d6d1728076075a34c3af37384bfef03b3937c9c8` |
+| "success alert" | Sucess, 640+ → `c47ba89813dd9c5d5fa3f5261752469c47c86277` |
+| "error alert" | Error, 640+ → `911eb315c0335078cc6d6a7aac3dfb3b4f6c79a4` |
+| "warning alert" | Warning, 640+ → `5e0ec25953692aaba4f35f4eb5ac5caebe581fce` |
+| "mobile alert" | Info, 0-639 → `07e35d571da8854b2917898d244a1887486fc2cd` |
+
+### Spec Example
+
+```json
+{
+  "name": "Form Error Alert",
+  "type": "instance",
+  "componentKey": "911eb315c0335078cc6d6a7aac3dfb3b4f6c79a4"
+}
+```
+
+---
+
+## Badge
+
+**Component Set Key**: `5d57bce346bb41bff5002e6d9908cf1128be7952` (reference only — do not use for instantiation)
+
+### Variant Axes
+
+| Axis | Options | Default |
+|------|---------|---------|
+| **Style** | `default`, `dot` | `default` |
+| **color** | `Default`, `Secondary`, `Error` | `Default` |
+
+> 6 total variants. `default` style shows a number; `dot` style shows a simple dot indicator.
+
+### Variant Key Lookup
+
+| Style | Color | Component Key |
+|-------|-------|--------------|
+| default | Default | `8cd02d0e406b4f97bcec9f14c552006f56a20e98` |
+| default | Secondary | `6e87e54b46a54f4cb6e93c2e44cdfe6466070615` |
+| default | Error | `cc2585c2614f04b967f0f0c778b309909c916cce` |
+| dot | Default | `64ef6165f2358b466cf206b085193a97f8f2de83` |
+| dot | Secondary | `e31035c68c0e821cac8bc153ee88d2b814bb8827` |
+| dot | Error | `2f91f45806cbaf76c7afb5047b8db1035c6ca2bc` |
+
+### Quick Reference
+
+| User says... | Use variant |
+|---|---|
+| "badge" / "notification badge" | Default style, Default color → `8cd02d0e406b4f97bcec9f14c552006f56a20e98` |
+| "error badge" / "red badge" | Default style, Error → `cc2585c2614f04b967f0f0c778b309909c916cce` |
+| "dot badge" / "status dot" | Dot style, Default → `64ef6165f2358b466cf206b085193a97f8f2de83` |
+| "secondary badge" | Default style, Secondary → `6e87e54b46a54f4cb6e93c2e44cdfe6466070615` |
+
+### Spec Example
+
+```json
+{
+  "name": "Notification Badge",
+  "type": "instance",
+  "componentKey": "8cd02d0e406b4f97bcec9f14c552006f56a20e98"
+}
+```
+
+---
+
+## Banner
+
+**Component Set Key**: `e1438356abdf08017af8970b3d3a1eccae84a49a` (reference only — do not use for instantiation)
+
+### Variant Axes
+
+| Axis | Options | Default |
+|------|---------|---------|
+| **type** | `info`, `error`, `warning`, `success` | `info` |
+| **size** | `0-639`, `640+` | `640+` |
+
+> 8 total variants. Use `size=640+` for desktop layouts.
+
+### Variant Key Lookup
+
+**size=640+ (desktop)**
+
+| Type | Component Key |
+|------|--------------|
+| info | `b48313ef1c187f3ec8db1635f441c319017a0022` |
+| error | `014a128a3682d5faf2437b11e11184a021474954` |
+| warning | `47925b8571d0f7528c9834948e8f4bfa28f103b2` |
+| success | `b3fa22eaf98811bb7eeb88b79121fc04463683f4` |
+
+**size=0-639 (mobile)**
+
+| Type | Component Key |
+|------|--------------|
+| info | `513d380dcbe2dd3f92a2a17f09033742f776c8df` |
+| error | `946d7a2ae5664ad9394b7c76680fe9892ee6767c` |
+| warning | `fab8b013029893a04b2554bc8bf7a0dab09d7f09` |
+| success | `f84a8585585117e111a83b16a8371accc57b9dfc` |
+
+### Quick Reference
+
+| User says... | Use variant |
+|---|---|
+| "banner" / "info banner" | Info, 640+ → `b48313ef1c187f3ec8db1635f441c319017a0022` |
+| "error banner" | Error, 640+ → `014a128a3682d5faf2437b11e11184a021474954` |
+| "warning banner" | Warning, 640+ → `47925b8571d0f7528c9834948e8f4bfa28f103b2` |
+| "success banner" | Success, 640+ → `b3fa22eaf98811bb7eeb88b79121fc04463683f4` |
+| "mobile banner" | Info, 0-639 → `513d380dcbe2dd3f92a2a17f09033742f776c8df` |
+
+### Spec Example
+
+```json
+{
+  "name": "System Banner",
+  "type": "instance",
+  "componentKey": "b48313ef1c187f3ec8db1635f441c319017a0022"
+}
+```
+
+---
+
+## Rating
+
+**Component Set Key**: `9c1b12ba8c13bd9affca8b11816a647409ef9544` (reference only — do not use for instantiation)
+
+### Variant Axes
+
+| Axis | Options | Default |
+|------|---------|---------|
+| **type** | `No label`, `Label` | `No label` |
+| **size** | `small`, `medium` | `small` |
+| **state** | `default`, `hover`, `selected`, `disabled` | `default` |
+| **label** | `none`, `poor`, `fair`, `average`, `good`, `excellent` | `none` |
+
+> 39 total variants. Use `state=default` for static mockups.
+
+### Variant Key Lookup (state=default)
+
+**No label**
+
+| Size | Component Key |
+|------|--------------|
+| small | `a5e05943136d7d885a5a8e40dc908ff096eaa86c` |
+| medium | `67f880f4e8e90a09ace6250c05c6f65855ae3db9` |
+
+**With label**
+
+| Size | Component Key |
+|------|--------------|
+| small | `650b894abb76f39bebd7246293c1f296518ecbf7` |
+
+### Quick Reference
+
+| User says... | Use variant |
+|---|---|
+| "rating" / "star rating" | No label, small, default → `a5e05943136d7d885a5a8e40dc908ff096eaa86c` |
+| "medium rating" / "large rating" | No label, medium, default → `67f880f4e8e90a09ace6250c05c6f65855ae3db9` |
+| "rating with label" | Label, small, default → `650b894abb76f39bebd7246293c1f296518ecbf7` |
+
+### Spec Example
+
+```json
+{
+  "name": "Product Rating",
+  "type": "instance",
+  "componentKey": "a5e05943136d7d885a5a8e40dc908ff096eaa86c"
+}
+```
+
+---
+
+## Linear Progress
+
+**Component Set Key**: `744489130d145aa3334fd60cbcb24e016ad76d9b` (reference only — do not use for instantiation)
+
+### Variant Axes
+
+| Axis | Options | Default |
+|------|---------|---------|
+| **variant** | `determinate or indeterminate` | `determinate or indeterminate` |
+
+> 1 variant. The same component handles both determinate and indeterminate progress styles.
+
+### Variant Key Lookup
+
+| Variant | Component Key |
+|---------|--------------|
+| determinate or indeterminate | `f046e5e5c7b25c6368133b3b0dd03e44c2fb6691` |
+
+### Quick Reference
+
+| User says... | Use variant |
+|---|---|
+| "progress bar" / "linear progress" / "loading bar" | → `f046e5e5c7b25c6368133b3b0dd03e44c2fb6691` |
+
+### Spec Example
+
+```json
+{
+  "name": "Upload Progress",
+  "type": "instance",
+  "componentKey": "f046e5e5c7b25c6368133b3b0dd03e44c2fb6691"
+}
+```
+
+---
+
+## Circular Progress
+
+**Component Set Key**: `5b4b089efa84a51f402c495d6d2c2ff944a01c97` (reference only — do not use for instantiation)
+
+Display progress and indicate how long an operation will take.
+
+### Variant Axes
+
+| Axis | Options | Default |
+|------|---------|---------|
+| **variant** | `determinate`, `indeterminate` | `determinate` |
+| **complete** | `yes`, `no`, `n/a` | `no` |
+| **completion** | `0%`, `60%`, `100%`, `N/A` | `60%` |
+| **success on complete** | `true`, `false`, `n/a` | `false` |
+| **greater than 64px** | `true`, `false` | `true` |
+
+> 10 total variants. Use `greater than 64px=true` for standard sizes (64px+), `false` for compact (40px).
+
+### Variant Key Lookup
+
+**Large (greater than 64px=true, complete=yes)**
+
+| Completion | Success on Complete | Component Key |
+|------------|---------------------|--------------|
+| 0% | false | `bf0bef3b70e82c50d9054fc6e6861d71824caa23` |
+| 0% | true | `f57f17205523acf73cad5773a09b8c13d6c991f2` |
+| 60% | false | `216069b312304f6d9f4d75991c323f48102e605d` |
+| 60% | true | `e32060d9f00c2a05f0eed1504981978ed6a2b669` |
+| 100% | false | `091142a61589ed2eb3d6100b912faef5ddd8fcc7` |
+| 100% | true | `65b8698fa35d3459a323d244801c9f448679008f` |
+
+**Small (greater than 64px=false, complete=no)**
+
+| Completion | Component Key |
+|------------|--------------|
+| 0% | `eecf408d380476fc48f88681a3ef350b56fe5aee` |
+| 60% | `b502331842974005ede07c04f2e5a63575395029` |
+| 100% | `96de7ecfa0ba591977e718cbd1a02ff8c0009284` |
+
+**Indeterminate**
+
+| Size | Component Key |
+|------|--------------|
+| small (40px) | `e819b6599ccd8fdd4615f937627036bc32fb4839` |
+
+### Quick Reference
+
+| User says... | Use variant |
+|---|---|
+| "circular progress" / "spinner" / "loading spinner" | Determinate, 60%, large → `216069b312304f6d9f4d75991c323f48102e605d` |
+| "indeterminate spinner" / "loading indicator" | Indeterminate, small → `e819b6599ccd8fdd4615f937627036bc32fb4839` |
+| "progress complete" / "100% progress" | Determinate, 100%, success, large → `65b8698fa35d3459a323d244801c9f448679008f` |
+| "small progress" / "compact spinner" | Determinate, 60%, small → `b502331842974005ede07c04f2e5a63575395029` |
+
+### Spec Example
+
+```json
+{
+  "name": "Loading Spinner",
+  "type": "instance",
+  "componentKey": "216069b312304f6d9f4d75991c323f48102e605d"
 }
 ```
 
