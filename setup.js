@@ -7,7 +7,9 @@
 // copies rules per-project.
 //
 // Usage:
-//   node ~/outreach-figma-bridge/setup.js          (from a project dir)
+//   node ~/outreach-figma-bridge/setup.js                              (from a project dir, or prompted)
+//   node ~/outreach-figma-bridge/setup.js --workspace /path/to/project (explicit workspace)
+//   node ~/outreach-figma-bridge/setup.js /path/to/project             (positional shorthand)
 //   node ~/outreach-figma-bridge/setup.js --help
 // ============================================================
 
@@ -44,6 +46,23 @@ const c = {
   cyan: "\x1b[36m",
   gray: "\x1b[90m",
 };
+
+// ── Interactive Prompt ─────────────────────────────────────────
+
+function createPrompt() {
+  const rl = readline.createInterface({
+    input: process.stdin,
+    output: process.stdout,
+  });
+  return {
+    ask(question) {
+      return new Promise((resolve) => rl.question(question, resolve));
+    },
+    close() {
+      rl.close();
+    },
+  };
+}
 
 // ── Helpers ────────────────────────────────────────────────────
 
@@ -383,9 +402,94 @@ function updateGitignore(projectDir) {
   }
 }
 
+// ── Workspace Resolution ───────────────────────────────────────
+
+function parseWorkspaceArg(args) {
+  // Check for --workspace <path> or -w <path>
+  for (let i = 0; i < args.length; i++) {
+    if ((args[i] === "--workspace" || args[i] === "-w") && args[i + 1]) {
+      return args[i + 1];
+    }
+  }
+
+  // Check for positional argument (a path that isn't a flag)
+  for (const arg of args) {
+    if (!arg.startsWith("-") && (arg.startsWith("/") || arg.startsWith("~") || arg.startsWith("."))) {
+      return arg;
+    }
+  }
+
+  return null;
+}
+
+function resolveWorkspacePath(input) {
+  // Expand ~ to home directory
+  if (input.startsWith("~")) {
+    input = path.join(HOME, input.slice(1));
+  }
+  return path.resolve(input);
+}
+
+function validateWorkspacePath(wsPath) {
+  if (!fs.existsSync(wsPath)) {
+    return { ok: false, reason: `Directory does not exist: ${wsPath}` };
+  }
+  const stat = fs.statSync(wsPath);
+  if (!stat.isDirectory()) {
+    return { ok: false, reason: `Not a directory: ${wsPath}` };
+  }
+  if (isDistRepo(wsPath)) {
+    return {
+      ok: false,
+      reason: `That is the bridge distribution directory, not a project workspace.`,
+    };
+  }
+  return { ok: true };
+}
+
+async function promptForWorkspace(prompt) {
+  log("");
+  log(
+    `${c.yellow}You are running setup from inside the bridge distribution directory.${c.reset}`
+  );
+  log(
+    `${c.dim}The rules need to be installed in your actual project workspace (the folder you open in Cursor / VS Code).${c.reset}`
+  );
+  log("");
+
+  while (true) {
+    const answer = await prompt.ask(
+      `${c.bold}Enter your workspace/project path${c.reset} (or "q" to quit): `
+    );
+
+    const trimmed = answer.trim();
+    if (!trimmed || trimmed.toLowerCase() === "q") {
+      log("");
+      log(
+        `${c.dim}Setup cancelled. You can re-run with a workspace path:${c.reset}`
+      );
+      log(`  node ${process.argv[1]} --workspace /path/to/your/project`);
+      log("");
+      return null;
+    }
+
+    const resolved = resolveWorkspacePath(trimmed);
+    const validation = validateWorkspacePath(resolved);
+
+    if (!validation.ok) {
+      log(`  ${c.red}${validation.reason}${c.reset}`);
+      log(`  ${c.dim}Please try again.${c.reset}`);
+      log("");
+      continue;
+    }
+
+    return resolved;
+  }
+}
+
 // ── Main ───────────────────────────────────────────────────────
 
-function main() {
+async function main() {
   const args = process.argv.slice(2);
 
   if (args.includes("--help") || args.includes("-h")) {
@@ -393,13 +497,21 @@ function main() {
 ${c.bold}Outreach Figma MCP Bridge — Setup${c.reset}
 
 ${c.bold}Usage:${c.reset}
-  node ~/outreach-figma-bridge/setup.js          Set up current project
-  node ~/outreach-figma-bridge/setup.js --help    Show this help
+  node ~/outreach-figma-bridge/setup.js                                 Set up current project
+  node ~/outreach-figma-bridge/setup.js --workspace /path/to/project    Set up a specific project
+  node ~/outreach-figma-bridge/setup.js /path/to/project                Same (positional shorthand)
+  node ~/outreach-figma-bridge/setup.js --help                          Show this help
 
 ${c.bold}What it does:${c.reset}
   1. Detects installed editors (Cursor, VS Code)
   2. Registers the MCP server globally (one-time)
-  3. Copies rules to the current project (if run from a project dir)
+  3. Copies rules to the target project workspace
+
+${c.bold}Workspace resolution:${c.reset}
+  - If --workspace (or -w) is provided, uses that path
+  - If a positional path argument is provided, uses that
+  - If run from a regular project directory, uses the current directory
+  - If run from inside the bridge repo, prompts you for the workspace path
 
 ${c.bold}Version management:${c.reset}
   - Same version → skips (no-op)
@@ -410,7 +522,6 @@ ${c.bold}Version management:${c.reset}
   }
 
   const version = readVersion();
-  const projectDir = process.cwd();
 
   log("");
   log(
@@ -462,22 +573,41 @@ ${c.bold}Version management:${c.reset}
   }
   log("");
 
-  // ── Phase 2: Per-project rules ──
-  if (isDistRepo(projectDir)) {
-    log(
-      `${c.dim}[Project Rules] Skipped — you are inside the distribution repo.${c.reset}`
-    );
-    log(
-      `${c.dim}Run this script from your project directory to install rules:${c.reset}`
-    );
-    log(`  cd your-project`);
-    log(`  node ${process.argv[1]}`);
-    log("");
+  // ── Resolve workspace/project directory ──
+  let projectDir = null;
+  const explicitPath = parseWorkspaceArg(args);
+
+  if (explicitPath) {
+    // User provided a path via --workspace or positional arg
+    const resolved = resolveWorkspacePath(explicitPath);
+    const validation = validateWorkspacePath(resolved);
+    if (!validation.ok) {
+      log(`${c.red}Error: ${validation.reason}${c.reset}`);
+      process.exit(1);
+    }
+    projectDir = resolved;
+  } else if (isDistRepo(process.cwd())) {
+    // Running from inside the dist repo — prompt interactively
+    const prompt = createPrompt();
+    try {
+      projectDir = await promptForWorkspace(prompt);
+    } finally {
+      prompt.close();
+    }
+
+    if (!projectDir) {
+      // User cancelled the prompt
+      process.exit(0);
+    }
   } else {
-    log(`${c.bold}[Project Rules]${c.reset} ${projectDir}`);
-    const didCopy = copyProjectRules(projectDir, editors, version);
-    log("");
+    // Running from a project directory — use CWD
+    projectDir = process.cwd();
   }
+
+  // ── Phase 2: Per-project rules ──
+  log(`${c.bold}[Project Rules]${c.reset} ${projectDir}`);
+  const didCopy = copyProjectRules(projectDir, editors, version);
+  log("");
 
   // ── Summary ──
   log(`${c.bold}Done!${c.reset}`);
@@ -486,9 +616,10 @@ ${c.bold}Version management:${c.reset}
   if (anyServerChange) {
     log(`${c.bold}Next steps:${c.reset}`);
     log(`  1. ${c.cyan}Restart Cursor / VS Code${c.reset} to pick up the MCP server`);
-    log(`  2. Open Figma → Plugins → ${c.cyan}Outreach Figma MCP Bridge${c.reset}`);
-    log(`  3. Start designing with AI`);
-  } else if (!isDistRepo(projectDir)) {
+    log(`  2. Open ${c.cyan}${projectDir}${c.reset} in your editor`);
+    log(`  3. Open Figma → Plugins → ${c.cyan}Outreach Figma MCP Bridge${c.reset}`);
+    log(`  4. Start designing with AI`);
+  } else {
     log("Everything is up to date. Happy designing!");
   }
   log("");

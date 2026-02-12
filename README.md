@@ -22,10 +22,17 @@ git clone git@github.com:sd-outreach/outreach-figma-bridge.git ~/outreach-figma-
 
 ### 2. Set up your project
 
-From your project directory, run:
+Run the setup script and point it at your workspace — the folder you open in Cursor / VS Code:
 
 ```bash
+# Option A: Pass your workspace path directly
+node ~/outreach-figma-bridge/setup.js --workspace /path/to/your/project
+
+# Option B: Run from inside your project directory
 cd your-project
+node ~/outreach-figma-bridge/setup.js
+
+# Option C: Just run it — if you're inside the bridge repo, it will ask you
 node ~/outreach-figma-bridge/setup.js
 ```
 
@@ -58,6 +65,12 @@ Ask the AI to create designs. The rules guide it automatically:
 ## Adding to another project
 
 ```bash
+node ~/outreach-figma-bridge/setup.js --workspace /path/to/another-project
+```
+
+Or from inside the project:
+
+```bash
 cd another-project
 node ~/outreach-figma-bridge/setup.js
 ```
@@ -75,11 +88,10 @@ cd ~/outreach-figma-bridge
 git pull
 ```
 
-Then in each project:
+Then update each project:
 
 ```bash
-cd your-project
-node ~/outreach-figma-bridge/setup.js
+node ~/outreach-figma-bridge/setup.js --workspace /path/to/your/project
 ```
 
 The setup script is version-aware:
@@ -150,8 +162,7 @@ The default mode after setup depends on your org's configuration.
 The AI is telling you the workspace rules are missing. Run:
 
 ```bash
-cd your-project
-node ~/outreach-figma-bridge/setup.js
+node ~/outreach-figma-bridge/setup.js --workspace /path/to/your/project
 ```
 
 Then restart your editor.
