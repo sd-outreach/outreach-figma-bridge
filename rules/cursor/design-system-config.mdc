@@ -19,7 +19,7 @@ Set to one of: `library`, `tokens`, `custom`, `create`, `none`
 
 ## MODE ENFORCEMENT — READ THIS FIRST
 
-> **AUDIT EXCEPTION: The `design_system_audit` prompt is COMPLETELY EXEMPT from mode enforcement, library packages, and all design-system-specific rules in this file. When running a design system audit, do NOT read this file for mode decisions, do NOT read `.cursor/libraries/` or `.cursor/cache/`, and do NOT reference any token file. The audit fetches ALL data directly from the connected Figma file via live MCP calls and analyzes it objectively. Skip the rest of this file entirely during an audit.**
+> **AUDIT EXCEPTION: The `design_system_audit` and `generate_library_package` prompts are COMPLETELY EXEMPT from mode enforcement, library packages, and all design-system-specific rules in this file. When running either prompt, do NOT read this file for mode decisions, do NOT read `.cursor/libraries/` or `.cursor/cache/`, and do NOT reference any token file. Both prompts fetch ALL data directly from the connected Figma file via live MCP calls. Skip the rest of this file entirely during an audit or library package generation.**
 
 **If the active mode is `library`. This is the ONLY section that matters for design decisions.**
 
@@ -68,7 +68,8 @@ Library data is **distributed as a pre-built, tested, versioned package** — no
 **Loading rules (do NOT apply during `design_system_audit` — the audit always fetches fresh data from Figma):**
 1. **Before the first design operation** in a session, check if `.cursor/libraries/` contains a library package for the active library.
 2. **If package exists**: Read `library.json` and use it for all design decisions. Do NOT call `discover_libraries`, `get_local_components`, or `get_local_styles` from Figma.
-3. **If package does not exist**: Inform the user that the library package is missing. Suggest running `setup.js` to install it, or fall back to runtime discovery (see Section R of `figma-tool-usage-rules.mdc`).
+3. **If package does not exist**: **FULL STOP.** Do NOT build any designs, do NOT fall back to runtime discovery, do NOT create any Figma content. Inform the user:
+   > "Library package not found in `.cursor/libraries/`. A library package is required in `library` mode. No designs will be built until a library package is installed."
 4. **Variable resolution**: On first use, check `.cursor/cache/resolved-variables.json`. If missing, call `get_local_variables` with `includeLibrary: true` to resolve variable names to file-local IDs. Write the results to the resolution file.
 5. **Within a session**: Never refetch. Use the package data and resolved variables.
 6. **Applies to `library` and `tokens` modes only.** `custom`, `create`, and `none` modes do not use library packages.
