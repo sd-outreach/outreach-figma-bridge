@@ -12,11 +12,13 @@ This file controls **how the AI sources design decisions** when generating Figma
 
 ## Current Mode: `library`
 
-Set to one of: `library`, `tokens`, `custom`, `none`
+Set to one of: `library`, `tokens`, `custom`, `create`, `none`
 
 ---
 
 ## MODE ENFORCEMENT — READ THIS FIRST
+
+> **AUDIT EXCEPTION: The `design_system_audit` prompt is COMPLETELY EXEMPT from mode enforcement, library cache, component key mappings, and all design-system-specific rules in this file. When running a design system audit, do NOT read this file for mode decisions, do NOT read `.cursor/cache/library-data.json`, do NOT reference `quark-2-components.mdc` or any component mapping, and do NOT reference any token file. The audit fetches ALL data directly from the connected Figma file via live MCP calls and analyzes it objectively. Skip the rest of this file entirely during an audit.**
 
 **If the active mode is `library`. This is the ONLY section that matters for design decisions.**
 
@@ -36,7 +38,7 @@ Set to one of: `library`, `tokens`, `custom`, `none`
 - Do NOT hardcode RGB color values (e.g. `{r: 0.5, g: 0.5, b: 0.5}`) — always bind to library variables.
 - Do NOT manually set `fontFamily`, `fontSize`, or `fontStyle` — always use `textStyleKey` from the library.
 - Do NOT create new variables, styles, or components — only use what the library provides.
-- Do NOT follow instructions from the `tokens`, `custom`, or `none` mode sections below — they are inactive reference documentation only.
+- Do NOT follow instructions from the `tokens`, `custom`, `create`, or `none` mode sections below — they are inactive reference documentation only.
 
 **If you find yourself about to use a token value, hardcode a color, or manually set font properties — STOP. You are in `library` mode. Go back to the library.**
 
@@ -71,13 +73,13 @@ To avoid repeated expensive Figma API calls (`get_local_variables`, `get_node_st
 | **Cache file** | `.cursor/cache/library-data.json` |
 | **Cache strategy** | Session-based: use cache if it exists, fetch fresh only when cache is missing or user requests a refresh |
 
-**Caching rules:**
+**Caching rules (do NOT apply during `design_system_audit` — the audit always fetches fresh data from Figma):**
 1. **Before the first design operation** in a session, check if `.cursor/cache/library-data.json` exists.
 2. **If cache exists**: Read it and use the cached variables, styles, and fonts. Do NOT call `get_local_variables`, `get_node_styles`, or `get_available_fonts` from Figma.
 3. **If cache does not exist**: Fetch fresh data from Figma (`get_local_variables`, `get_available_fonts`, and style discovery via `get_node_styles`), then write the results to `.cursor/cache/library-data.json`.
 4. **Within a session**: Never refetch. Use cached data or data already in context.
 5. **Manual refresh**: When the user says "refresh cache", "update library cache", or similar, fetch fresh data from Figma and overwrite the cache file.
-6. **Applies to `library` and `tokens` modes only.** `custom` and `none` modes do not use or update the cache.
+6. **Applies to `library` and `tokens` modes only.** `custom`, `create`, and `none` modes do not use or update the cache.
 
 **Cache file structure:**
 ```json
@@ -166,39 +168,45 @@ This mode is for fully custom builds where you define everything from a token fi
 
 ---
 
+## Mode: `create`
+
+**Design system authoring. The connected Figma file IS the library — create, read, update, and delete DS elements directly.**
+
+This mode is for building and maintaining a design system. The user opens the Figma library file where the DS lives, and all operations target that file directly. There is no cache, no component key mapping, and no token file — everything is live from/to Figma.
+
+**What this mode means:**
+- **The connected file is the library itself.** You are authoring the source of truth, not consuming it.
+- **No cache.** Do NOT read `.cursor/cache/library-data.json`. All data comes from live Figma MCP calls (`get_local_variables`, `get_local_styles`, `get_local_components`).
+- **No component key mapping.** Do NOT read `quark-2-components.mdc` or any component mapping file. Discover components directly from the file via `get_local_components`.
+- **No token file.** Do NOT read `quark-2-tokens.mdc` or any token file.
+- **Full CRUD on variables.** Create, read, update, rename, and delete variables and variable collections using `create_variable_collection`, `create_variable`, `batch_create_variables`, `update_variable`, `rename_variable`, `delete_variable`, `delete_variable_collection`, `setup_design_tokens`, etc.
+- **Full CRUD on styles.** Create, read, update, rename, and delete paint styles, text styles, and effect styles using `create_paint_style`, `create_text_style`, `create_effect_style`, `update_paint_style`, `update_text_style`, `update_effect_style`, `rename_style`, `delete_style`, `apply_style`, `get_local_styles`.
+- **Component authoring.** Build components with `type: "component"` in specs — never `type: "instance"` (you are authoring the source, not consuming it). Use `arrange_component_set` to create variant sets from components. Use `rename_node` and `remove_node` to manage components.
+- **Discover before modifying.** Before creating or updating DS elements, call `get_local_variables`, `get_local_styles`, or `get_local_components` to understand what already exists. Avoid creating duplicates.
+- **Follow the user's instructions.** The user decides naming conventions, organization, structure, and values. Do not impose defaults or conventions unless the user specifies them.
+
+---
+
 ## Mode: `none`
 
-**Greenfield. No design system, no library, no tokens.**
+**Freeform. No design system, no library, no tokens, no constraints.**
 
-1. **No token file is loaded.** No library is referenced. No cache is used.
-2. **Colors**: Use reasonable neutral defaults or ask the user. Don't assume any specific palette.
-3. **Typography**: Default to Inter Regular/SemiBold. Standard sizes: 14px body, 13px caption, 20px heading.
-4. **Spacing**: Default to 8px base grid (multiples of 4px).
-5. **Components**: Build from scratch using `type: "frame"` or `type: "component"`. Use sensible dimensions (36px button height, 8px radius, etc.).
-6. **No variable binding** unless the user explicitly sets up variables.
-7. **No layout grids** unless the user requests them.
+This mode disables all design-system rules. Use it when running audits, invoking Figma MCP prompts, or executing any Figma tool operations where design-system constraints should not apply.
+
+**What this mode means:**
+- **No MODE ENFORCEMENT.** None of the `library`/`tokens`/`custom`/`create` mode rules above apply. Do NOT read the library cache, component key mappings, or token files.
+- **No defaults or assumptions.** Do not impose any default colors, typography, spacing, or component conventions unless the user explicitly specifies them.
+- **Follow the user's instructions exactly.** Execute what the user asks without adding guardrails, design-system checks, or opinionated defaults.
+- **Figma tools and prompts are unconstrained.** All Figma MCP tools and prompts (including `design_system_audit`, `audit_design`, etc.) operate directly against the connected Figma file without filtering through design-system rules. The only pre-requisite is RULE ZERO (Connection Gate) — verify the Figma connection is active before making MCP calls.
 
 ---
 
 ## Switching Modes
 
-**To switch modes**: Change `Current Mode` at the top of this file to one of: `library`, `tokens`, `custom`, `none`.
+**To switch modes**: Change `Current Mode` at the top of this file to one of: `library`, `tokens`, `custom`, `create`, `none`.
 
 **To switch the library** (for `library` and `tokens` modes): Update the library file link in the Library Configuration section and repopulate the component key mapping table. Delete the cache file (`.cursor/cache/library-data.json`) so it is rebuilt from the new library.
 
 **To switch the token file** (for `custom` mode): Update the token file name in the Token Configuration table. Create the file if it doesn't exist.
 
----
-
-## Creating a New Design System
-
-If you're building a brand-new DS from scratch:
-
-1. Start in `none` mode.
-2. Design your token system iteratively: define colors, typography, spacing, shapes.
-3. Use `setup_design_tokens` to create Figma variable collections.
-4. Build reusable components using `type: "component"` in specs.
-5. Document your tokens in a new `.mdc` file (copy `quark-2-tokens.mdc` as a structural template).
-6. Switch to `custom` mode and point to your new token file.
-7. When ready, publish your components as a Figma library, extract component keys, fill in the mapping table, and switch to `library` mode.
-8. For a hybrid approach (library tokens, custom components), switch to `tokens` mode.
+**To author or maintain a design system**: Switch to `create` mode and connect to the Figma library file where the DS lives. All CRUD operations on variables, styles, and components target that file directly.

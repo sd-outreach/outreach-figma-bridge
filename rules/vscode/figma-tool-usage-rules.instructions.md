@@ -8,7 +8,9 @@ applyTo: '**'
 
 These rules govern **how to use the Figma MCP bridge tools**. They are design-system agnostic — for which colors, fonts, spacing, and components to use, see `design-system-config.mdc`.
 
-> **MODE GATE: Before executing ANY design operation, read `design-system-config.mdc` to determine the active mode (`library`, `tokens`, `custom`, or `none`). The active mode is declared in `## Current Mode:` at the top of that file. Rules in this file that are marked with a mode condition (e.g. "only in `custom` mode") MUST be skipped if that mode is not active. When the active mode is `library` or `tokens`, you MUST NOT use token-file-based workflows (`setup_design_tokens`, hardcoded RGB values). When the active mode is `library`, you MUST use library component instances where they exist. See the MODE ENFORCEMENT section in `design-system-config.mdc` for the full list of prohibitions.**
+> **MODE GATE: Before executing ANY design operation, read `design-system-config.mdc` to determine the active mode (`library`, `tokens`, `custom`, `create`, or `none`). The active mode is declared in `## Current Mode:` at the top of that file. Rules in this file that are marked with a mode condition (e.g. "only in `custom` mode") MUST be skipped if that mode is not active. When the active mode is `library` or `tokens`, you MUST NOT use token-file-based workflows (`setup_design_tokens`, hardcoded RGB values). When the active mode is `library`, you MUST use library component instances where they exist. When the active mode is `create`, you are authoring the DS itself — see Section T below for the authoring workflow. See the MODE ENFORCEMENT section in `design-system-config.mdc` for the full list of prohibitions.**
+>
+> **AUDIT EXCEPTION: The `design_system_audit` prompt is EXEMPT from the MODE GATE. When running a design system audit, do NOT read `design-system-config.mdc`, do NOT check the library data cache, do NOT reference any component key mapping or token file, and do NOT follow any mode-specific rules from this file. The audit fetches ALL data directly from the connected Figma file via live MCP calls. The only rule from this file that still applies during an audit is RULE ZERO (Connection Gate) — the Figma connection must be verified before making MCP calls.**
 
 ### RULE ZERO — Connection Gate (MANDATORY before any Figma tool call)
 
@@ -71,12 +73,12 @@ The gate applies **only when you are about to call a Figma tool** — i.e., when
 
 ### B. Color & Token Discipline
 
-6. **NEVER hardcode or guess color values.** In `library` or `tokens` mode, read variables/styles from the Figma library (or cache) — do NOT read or reference any token file. In `custom` mode, use the token file's exact values. In `none` mode, use reasonable defaults or ask the user. **Always check `design-system-config.mdc` for the active mode first.**
+6. **NEVER hardcode or guess color values.** In `library` or `tokens` mode, read variables/styles from the Figma library (or cache) — do NOT read or reference any token file. In `custom` mode, use the token file's exact values. In `create` mode, use or create variables/styles directly in the connected Figma file via live MCP calls. In `none` mode, use reasonable defaults or ask the user. **Always check `design-system-config.mdc` for the active mode first.**
 7. **(`custom` mode ONLY)** If the active DS token file is loaded as a cursor rule, skip the `design-tokens` resource fetch — all values are already inline. Only fetch the resource if you need tokens not covered by the rule. **In `library` or `tokens` mode, do NOT fetch or reference any token file or design-tokens resource.**
 
 ### C. Typography
 
-8. **Check `get_available_fonts` once at the start of a session**, not before every text node. In `library` or `tokens` mode, check the library data cache first (see Section R). Use the fonts specified by the active design system, or fall back to "Inter" if no DS is active.
+8. **Check `get_available_fonts` once at the start of a session**, not before every text node. In `library` or `tokens` mode, check the library data cache first (see Section R). In `create` mode, call `get_available_fonts` live — do not use the cache. Use the fonts specified by the active design system, or fall back to "Inter" if no DS is active.
 9. **Always specify `fontFamily`, `fontStyle`, and `fontSize` explicitly** on every text node in the spec — never rely on Figma defaults. **However, in `library` or `tokens` mode, prefer `textStyleKey` over manual font properties. Only set `fontFamily`/`fontStyle`/`fontSize` manually if no library text style exists for the purpose.**
 
 ### D. Validation & Verification
@@ -147,12 +149,12 @@ The gate applies **only when you are about to call a Figma tool** — i.e., when
 
 ### K. Component Matching
 
-47. **When a user says a component name** (e.g. "button", "card", "input"), check `design-system-config.mdc` for the current mode. In `library` mode, match the user's term against the Component Name column in the component key mapping file — use your understanding of common synonyms (e.g. "modal" → Dialog, "toggle" → switch, "dropdown" → select). In `tokens` mode, build the component from scratch using library variables/styles (no component key mapping needed). In `custom` mode, use the token file's component specs. In `none` mode, use sensible defaults (e.g. a button is a rounded rectangle with text).
+47. **When a user says a component name** (e.g. "button", "card", "input"), check `design-system-config.mdc` for the current mode. In `library` mode, match the user's term against the Component Name column in the component key mapping file — use your understanding of common synonyms (e.g. "modal" → Dialog, "toggle" → switch, "dropdown" → select). In `tokens` mode, build the component from scratch using library variables/styles (no component key mapping needed). In `custom` mode, use the token file's component specs. In `create` mode, discover existing components via `get_local_components` or create new ones per user instructions (see Section T). In `none` mode, use sensible defaults (e.g. a button is a rounded rectangle with text).
 
 ### L. Screen & Component Defaults
 
-48. **Always set a background fill on root screen frames.** In `library` or `tokens` mode, bind the fill to a library background variable — do NOT hardcode RGB values or use token values. In `custom` mode, use the active DS background token from the token file. In `none` mode, use a light neutral like `{r:0.96, g:0.96, b:0.97}`.
-49. **Use `component` type in specs** for any element that would be reused. Use `frame` only for one-off layout containers. **In `library` mode, prefer `type: "instance"` + `componentKey` over creating new components — only create `frame` for layout containers that have no library equivalent. In `tokens` mode, always use `frame` or `component` — never `type: "instance"`.**
+48. **Always set a background fill on root screen frames.** In `library` or `tokens` mode, bind the fill to a library background variable — do NOT hardcode RGB values or use token values. In `custom` mode, use the active DS background token from the token file. In `create` mode, use or create variables per user instructions. In `none` mode, use a light neutral like `{r:0.96, g:0.96, b:0.97}`.
+49. **Use `component` type in specs** for any element that would be reused. Use `frame` only for one-off layout containers. **In `library` mode, prefer `type: "instance"` + `componentKey` over creating new components — only create `frame` for layout containers that have no library equivalent. In `tokens` mode, always use `frame` or `component` — never `type: "instance"`. In `create` mode, always use `type: "component"` — you are authoring the source (see Section T).**
 
 ### L2. Frame Hygiene — Fills & Clipping
 
@@ -189,18 +191,18 @@ The gate applies **only when you are about to call a Figma tool** — i.e., when
 
 ### M. Design Tokens / Variables
 
-> **MODE GATE: Rules 51–55 apply ONLY in `custom` or `none` mode. In `library` or `tokens` mode, do NOT create variable collections, batch-create variables, or set up design tokens. Use `get_local_variables` (rule 50) or the library data cache (Section R) to READ existing library variables only. See also Section I (rules 32–35) for mandatory canvas placement rules.**
+> **MODE GATE: Rules 51–55 apply in `custom`, `create`, or `none` mode. In `library` or `tokens` mode, do NOT create variable collections, batch-create variables, or set up design tokens. Use `get_local_variables` (rule 50) or the library data cache (Section R) to READ existing library variables only. In `create` mode, all variable CRUD is unrestricted — you are authoring the DS. See also Section I (rules 32–35) for mandatory canvas placement rules.**
 
 50. **Use `get_local_variables`** to explore the file's token system (colors, spacing, etc.) before making assumptions. **In `library` or `tokens` mode, prefer reading from the library data cache (Section R) first. Only call `get_local_variables` if the cache does not exist or is being refreshed. Do NOT create new variables in these modes.**
-51. **(`custom`/`none` mode ONLY)** Use `create_variable_collection` to set up token groups (e.g. "Brand Colors" with "Light" and "Dark" modes).
-52. **(`custom`/`none` mode ONLY)** Use `batch_create_variables` when adding 3+ variables — it's 10-50x faster than individual `create_variable` calls.
-53. **(`custom`/`none` mode ONLY)** Use `batch_update_variables` when updating 3+ variable values across modes.
-54. **(`custom`/`none` mode ONLY)** For COLOR variables, accept both hex strings (`"#5E5EAF"`) and RGB objects (`{r: 0.369, g: 0.369, b: 0.686}`). Use `"VariableID:..."` strings to create variable aliases.
+51. **(`custom`/`create`/`none` mode ONLY)** Use `create_variable_collection` to set up token groups (e.g. "Brand Colors" with "Light" and "Dark" modes).
+52. **(`custom`/`create`/`none` mode ONLY)** Use `batch_create_variables` when adding 3+ variables — it's 10-50x faster than individual `create_variable` calls.
+53. **(`custom`/`create`/`none` mode ONLY)** Use `batch_update_variables` when updating 3+ variable values across modes.
+54. **(`custom`/`create`/`none` mode ONLY)** For COLOR variables, accept both hex strings (`"#5E5EAF"`) and RGB objects (`{r: 0.369, g: 0.369, b: 0.686}`). Use `"VariableID:..."` strings to create variable aliases.
 55. **Cap batch operations at 100 items** per call. Split larger sets into multiple batches.
 
 ### M2. Variable Binding in Specs
 
-> **MODE NOTE:** In `library` or `tokens` mode, variable IDs come from the library data cache or `get_local_variables` (which imports library variables). Do NOT call `setup_design_tokens` — that is a `custom`-mode-only workflow.
+> **MODE NOTE:** In `library` or `tokens` mode, variable IDs come from the library data cache or `get_local_variables` (which imports library variables). Do NOT call `setup_design_tokens` — that is for `custom` and `create` modes only.
 
 56. **Bind fills to variables using `fillVariable`** in the spec. **In `library` or `tokens` mode:** get variable IDs from the library data cache (Section R) or `get_local_variables` (library import), then use `fillVariable: "VariableID:..."`. **In `custom` mode:** workflow is (1) `setup_design_tokens` to create variables, (2) note the returned variable IDs, (3) use `fillVariable: "VariableID:..."` in spec nodes alongside the `fill` RGB value.
 57. **Bind strokes to variables using `strokeVariable`**. Same pattern as fills — set `stroke` with the raw color, plus `strokeVariable` to bind.
@@ -244,7 +246,7 @@ The gate applies **only when you are about to call a Figma tool** — i.e., when
 
 ### R. Library Data Caching
 
-> **Applies to `library` and `tokens` modes only.** `custom` and `none` modes do not use the library cache.
+> **Applies to `library` and `tokens` modes only.** `custom`, `create`, and `none` modes do not use the library cache.
 
 71. **Check the cache before calling Figma.** On the first design operation in a session, check if `.cursor/cache/library-data.json` exists. If it does, read it and use the cached data for all subsequent operations. Do NOT call `get_local_variables`, `get_node_styles`, or `get_available_fonts` from Figma when the cache is available.
 72. **Build the cache when it is missing.** If the cache file does not exist, fetch fresh data from Figma: (1) call `get_local_variables` with `includeLibrary: true`, (2) call `get_available_fonts`, (3) discover style keys via `get_node_styles` on key library component instances (then delete the temporary instances per rule 68). Write the combined results to `.cursor/cache/library-data.json`. Create the `.cursor/cache/` directory if it does not exist.
@@ -294,3 +296,25 @@ The gate applies **only when you are about to call a Figma tool** — i.e., when
 - Do NOT use `Action/*` tokens for static elements — `Action/` tokens are for interactive state feedback (hover, active, disabled states on clickable elements).
 
 81. **When in doubt, prefer specificity.** If a semantic token exists that exactly describes the element's purpose (e.g. `Background/background-input` for a text field), always use it over a broader token (e.g. `Background/background-paper`), even if both resolve to the same color today.
+
+### T. Design System Authoring (`create` mode)
+
+> **Applies to `create` mode only.** In this mode, the connected Figma file IS the library. You are authoring the design system, not consuming it. There is no cache, no component key mapping, and no token file — all data is live from/to Figma.
+
+82. **Discover before modifying.** Before creating or updating any DS element, call the appropriate read tool to understand what already exists:
+    - `get_local_variables` for variables and collections
+    - `get_local_styles` for paint, text, and effect styles
+    - `get_local_components` for components and component sets
+    Avoid creating duplicates. If something already exists, update it rather than creating a new one.
+
+83. **Variable CRUD is fully available.** Use `create_variable_collection`, `create_variable`, `batch_create_variables`, `update_variable`, `rename_variable`, `delete_variable`, `delete_variable_collection`, `add_mode`, `rename_mode`, and `setup_design_tokens` as needed. No restrictions.
+
+84. **Style CRUD is fully available.** Use `create_paint_style`, `create_text_style`, `create_effect_style` to create styles. Use `update_paint_style`, `update_text_style`, `update_effect_style` to modify existing styles. Use `rename_style` and `delete_style` for renaming and removal. Use `apply_style` to apply a style to a node.
+
+85. **Build components with `type: "component"` in specs.** You are authoring the source components, not instantiating them. Never use `type: "instance"` or `componentKey` in `create` mode — those are for consuming a published library.
+
+86. **Use `arrange_component_set`** to combine multiple component nodes into a proper Figma variant set. Components must follow the naming convention `Property=Value, Property2=Value2`.
+
+87. **No cache, no config files.** Do NOT read `.cursor/cache/library-data.json`, `quark-2-components.mdc`, `quark-2-tokens.mdc`, or any component mapping/token file. All data comes from live Figma MCP calls.
+
+88. **Follow the user's instructions for structure and naming.** The user decides naming conventions, organizational hierarchy, and values. Do not impose defaults or opinionated conventions unless explicitly asked.
