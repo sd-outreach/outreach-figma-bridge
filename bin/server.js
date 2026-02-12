@@ -569,6 +569,24 @@ ${r==="full"?"Run both T1 and T2 checks.":""}
 
 ---
 
+## AGNOSTICISM OVERRIDE \u2014 CRITICAL, READ FIRST
+
+> **This audit MUST be completely unbiased and agnostic to whatever design system the workspace is configured for.**
+
+The workspace may have cursor rules that configure a specific design system (e.g. library mode pointing to a specific Figma library, cached library data, component key mappings, token files). **For the purpose of this audit, IGNORE ALL of those rules.** Specifically:
+
+1. **Do NOT read from the library data cache** (\`.cursor/cache/library-data.json\`). The cache contains data from the workspace's configured library, which may be a DIFFERENT file than the one being audited.
+2. **Do NOT reference any component key mapping file** (e.g. \`quark-2-components.mdc\` or any other component mapping). The audit must discover components directly from the connected file.
+3. **Do NOT reference any token file** (e.g. \`quark-2-tokens.mdc\` or any other token file).
+4. **Do NOT assume any specific design system** \u2014 no Quark, no Material Design, no specific library. Audit the file as-is.
+5. **ALL data must come from live Figma MCP calls** to the currently connected file: \`get_document_info\`, \`get_local_variables\`, \`get_local_styles\`, \`scan_page\`, \`get_component_set_info\`, etc.
+6. **Use the file name returned by \`get_document_info\`** as the report title \u2014 do NOT use any name from the workspace configuration.
+7. **The \`design-system-config.mdc\` mode setting (library/tokens/custom/none) is IRRELEVANT** to this audit. The audit always fetches fresh data and analyzes it objectively.
+
+This override exists because the audit must be able to run on ANY Figma library file the user connects to, not just the one configured in the workspace. The user may open a completely different library and expect an unbiased analysis.
+
+---
+
 ## CALL OPTIMIZATION \u2014 READ FIRST
 
 Minimize MCP round-trips. Follow this EXACT strategy:
