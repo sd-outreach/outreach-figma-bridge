@@ -71,8 +71,8 @@ Library data is **distributed as a pre-built, tested, versioned package** — no
 2. **If package exists**: Read `library.json` and use it for all design decisions. Do NOT call `discover_libraries`, `get_local_components`, or `get_local_styles` from Figma.
 3. **If package does not exist**: **FULL STOP.** Do NOT build any designs, do NOT fall back to runtime discovery, do NOT create any Figma content. Inform the user:
    > "Library package not found in `.cursor/libraries/`. A library package is required in `library` mode. No designs will be built until a library package is installed."
-4. **Variable resolution**: On first use, check `.cursor/cache/resolved-variables.json`. If missing, call `get_local_variables` with `includeLibrary: true` to resolve variable names to file-local IDs. Write the results to the resolution file.
-5. **Within a session**: Never refetch. Use the package data and resolved variables.
+4. **Variable resolution**: At the start of every session, call `resolve_library_variables` to resolve variable names to file-local IDs. Always resolve fresh — do NOT reuse a previous session's `resolved-variables.json`. Variable IDs are file-local and can change when the user switches Figma files or the library is republished.
+5. **Within a session**: After the initial resolution, use the package data and resolved variables for the rest of the session. Do not re-resolve unless the user explicitly requests it.
 6. **Applies to `library` and `tokens` modes only.** `custom`, `create`, and `none` modes do not use library packages.
 
 ### Library Package Schema
@@ -107,7 +107,7 @@ See `.cursor/libraries/README.md` for the full schema. Key sections:
 
 ### Runtime Variable Resolution (`resolved-variables.json`)
 
-This is the only "cached" artifact. It maps variable names from the library package to file-local variable IDs:
+This file maps variable names from the library package to file-local variable IDs. It is **regenerated fresh at the start of every session** by calling `resolve_library_variables` — it is NOT a persistent cache. Variable IDs are file-local and can change when the user switches Figma files or the library is republished.
 
 ```json
 {
@@ -121,7 +121,7 @@ This is the only "cached" artifact. It maps variable names from the library pack
 }
 ```
 
-This file is trivially regenerated — losing it has zero cost.
+This file is regenerated every session — losing it has zero cost.
 
 ---
 

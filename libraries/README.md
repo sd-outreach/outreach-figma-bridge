@@ -136,9 +136,10 @@ When the Figma library changes:
 
 Variable keys in the package are **publish keys** (stable across files). But to bind variables in specs, the AI needs **file-local variable IDs** (e.g., `VariableID:abc/123:456`).
 
-On first design operation, the bridge resolves variable keys to local IDs:
-1. Calls `get_local_variables` with `includeLibrary: true`
-2. Maps package variable names → imported variable IDs
-3. Saves to `.cursor/cache/resolved-variables.json` (trivially regenerated)
+At the start of **every session**, the `resolve_library_variables` tool resolves variable keys to local IDs:
+1. Reads the library package to get all variable names and keys
+2. Calls `get_local_variables` with `includeLibrary: true` to import all library variables
+3. Maps every variable name from the package → imported variable ID (by key first, then by name)
+4. Writes the mapping to `.cursor/cache/resolved-variables.json`
 
-This resolution file is the only "cached" artifact. It's small, fast to regenerate, and losing it has zero cost.
+Resolution always runs fresh — it never reuses a previous session's file. Variable IDs are file-local and can change when the user switches Figma files or the library is republished.

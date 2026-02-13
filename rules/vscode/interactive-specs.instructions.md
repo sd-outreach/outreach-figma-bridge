@@ -132,6 +132,19 @@ When a design is finalized and no longer needs iteration:
 When a spec is explicitly abandoned:
 - Delete both the spec file and any Figma nodes built from it
 
+### T7b. Reconnection / Restart Cleanup
+
+When rebuilding after a connection drop or conversation restart:
+
+1. **Read the manifest** (`.cursor/specs/_manifest.json`) to find `figmaNodeId` values from the previous build attempt
+2. **Scan the canvas** to verify which of those nodes still exist
+3. **Delete all stale frames** from the previous build BEFORE starting new builds — do not leave them on canvas until the end
+4. **For each screen**, also check its spec file's `_meta.figmaNodeId` — if that node still exists on canvas, delete it before rebuilding
+5. **After each successful rebuild**, immediately update the spec's `_meta.figmaNodeId` and the manifest entry so future restarts know what to clean up
+6. **Update the manifest incrementally** — after each screen build, not just at the end. This way, if another interruption occurs, the manifest reflects partial progress
+
+> **Key principle:** Clean up first, then build. Never leave stale frames waiting for cleanup at the end of a multi-screen build.
+
 ### T8. Validation-Only Mode
 
 When the user says "validate my specs", "check specs", or similar:

@@ -218,7 +218,7 @@ The gate applies **only when you are about to call a Figma tool** — i.e., when
 ### M3. Library Variable Import
 
 59b. **In `library` or `tokens` mode, `get_local_variables` auto-imports all library variables.** When `includeLibrary` is true (the default), the tool calls `figma.teamLibrary.getAvailableLibraryVariableCollectionsAsync()` and imports every variable via `importVariableByKeyAsync`. The imported variable IDs are returned under `libraryVariables` and can be used directly with `fillVariable`/`strokeVariable`/`textFillVariable`.
-59c. **At the start of a `library` or `tokens` mode session, check the library package and resolved variables first** (see Section R). If both exist, use them — do NOT call `get_local_variables`. Only call `get_local_variables` if the resolution file is missing.
+59c. **At the start of every `library` or `tokens` mode session, always resolve variables fresh.** Call `resolve_library_variables` once after the connection gate passes (see Section R, rule 72). Do NOT rely on a previously cached `resolved-variables.json` — variable IDs can change between sessions when the user switches files or the library is republished.
 
 ### M4. Style Binding in Specs
 
@@ -250,18 +250,38 @@ The gate applies **only when you are about to call a Figma tool** — i.e., when
 69. **Delete superseded builds.** When rebuilding a screen (e.g. fixing fills, correcting layout), delete the old version(s) after confirming the new build is correct. Do not leave duplicate or stale frames on the canvas.
 70. **Track node IDs of temporary creations.** When creating temporary nodes (e.g. `build_from_spec` for style discovery), immediately note the returned `rootNodeId` and delete it as soon as the information is extracted — within the same logical operation, not deferred to later.
 
+### Q2. Reconnection Cleanup — Clean Up Before Rebuilding
+
+> **MANDATORY when restarting a multi-screen build after a connection drop or conversation restart.**
+
+70b. **Clean up stale frames BEFORE rebuilding, not after.** When restarting a build (e.g. after a connection interruption), stale frames from the previous attempt may remain on the canvas. These MUST be deleted before building new frames to prevent duplicates from accumulating.
+70c. **Cleanup procedure for multi-screen rebuilds:**
+    1. Read `.cursor/specs/_manifest.json` to collect `figmaNodeId` values from the previous build.
+    2. Scan the canvas with `get_current_page` (depth 1) to identify all top-level frames.
+    3. Collect node IDs to delete: frames whose ID matches a manifest entry, OR frames whose name matches a screen you are about to rebuild.
+    4. Call `delete_multiple_nodes` with all collected IDs.
+    5. Re-scan the canvas to get a clean baseline for placement calculations.
+    6. Only then begin building screens.
+70d. **Cleanup procedure for single-screen rebuilds:**
+    1. Check `.cursor/specs/<screen-name>.json` for a `_meta.figmaNodeId`.
+    2. If found, attempt to delete that node before building the replacement.
+    3. Also scan by name — if a frame with the same name exists, delete it.
+70e. **Always update the manifest after each successful build.** This ensures a future restart can identify what to clean up. Do not defer manifest updates to the end of a multi-screen build — update after each screen.
+
 ### R. Library Package Loading
 
 > **Applies to `library` and `tokens` modes only.** `custom`, `create`, and `none` modes do not use library packages. Library packages are **pre-built, tested, versioned artifacts** distributed with the bridge — they are NOT generated at runtime.
 
 71. **Check the library package before calling Figma.** On the first design operation in a session, check if `.cursor/libraries/<library-name>/library.json` exists. If it does, read it and use the package data for all subsequent operations. Do NOT call `discover_libraries`, `get_local_components`, `get_local_styles`, or `get_available_fonts` from Figma when the package is available.
-72. **Resolve variable IDs when missing.** If `.cursor/cache/resolved-variables.json` does not exist (or references a different library version):
-    1. Call `get_local_variables` with `includeLibrary: true` to import library variables and get their file-local IDs.
-    2. Map variable names from the library package to the returned variable IDs.
-    3. Write the result to `.cursor/cache/resolved-variables.json`. This is the only runtime step.
+72. **Resolve variable IDs once per session — always fresh.** At the start of every session (after the connection gate passes and the library package is read), call `resolve_library_variables` with the workspace path. Do NOT check whether `resolved-variables.json` already exists — always run a fresh resolution. Variable IDs are file-local and can change when the user switches Figma files or the library is republished. This tool atomically:
+    1. Reads the library package from `.cursor/libraries/<name>/library.json`
+    2. Calls `get_local_variables` with `includeLibrary: true` to import all library variables
+    3. Maps **every** variable name from the package to its file-local variable ID (by publish key first, then by name as fallback)
+    4. Writes the complete mapping to `.cursor/cache/resolved-variables.json`
+    Do NOT manually orchestrate these steps — always use the `resolve_library_variables` tool for a complete, reliable resolution.
 73. **If the library package is missing**: **FULL STOP.** Do NOT build any designs, do NOT fall back to runtime discovery, do NOT create any Figma content. Tell the user: "Library package not found in `.cursor/libraries/`. A library package is required in `library` or `tokens` mode. No designs will be built until a library package is installed." Do NOT proceed until a package is installed.
-74. **Never refetch within a session.** Once the package has been read and variables resolved, use that data for the remainder of the session. Do not re-read the package or re-resolve variables unless explicitly requested.
-75. **Manual re-resolution.** When the user says "refresh variables", "re-resolve", or similar, delete `.cursor/cache/resolved-variables.json` and re-run the resolution flow (rule 72). The library package itself is never modified at runtime — only the resolution file is regenerated.
+74. **Never re-resolve within a session.** Once `resolve_library_variables` has run, use the resolved data for the remainder of the session. Do not re-resolve variables unless the user explicitly requests it.
+75. **Manual re-resolution.** When the user says "refresh variables", "re-resolve", or similar, call `resolve_library_variables` again. The library package itself is never modified at runtime — only the resolution file is regenerated.
 76. **Use `variables` for variable lookup.** When building specs, look up variable names in the package's `variables` section to find keys, then look up the corresponding file-local IDs in `resolved-variables.json`.
 77. **Use `styleKeys` for fast style resolution.** When applying text styles, look up the key by style name in the package's `styleKeys.textStyles`. Same pattern for `paintStyles` and `effectStyles`.
 
